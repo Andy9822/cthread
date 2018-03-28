@@ -4,14 +4,7 @@
 
 CC=gcc
 LIB_DIR=../lib
-SRC_DIR=../src
-BUILD_DIR=build
 all: exemplo mandel teste_vetor barbeiro filosofos prodcons series
-
-testeid:
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -o $(BUILD_DIR)/testeid cthread.o testeid.c -Wall
 
 exemplo: exemplo.c $(LIB_DIR)/libcthread.a
 	$(CC) -o exemplo exemplo.c -L$(LIB_DIR) -lcthread -Wall
