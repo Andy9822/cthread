@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "../include/cthread.h"
 #include "../include/cdata.h"
 #include "../include/support.h"
@@ -41,7 +42,28 @@ Retorno:
 	Se correto => Valor positivo, que representa o identificador da thread criada
 	Se erro	   => Valor negativo.
 ******************************************************************************/
-int ccreate (void* (*start)(void*), void *arg, int prio);
+int ccreate (void* (*start)(void*), void *arg, int prio) {
+  TCB_t *tcb = malloc(sizeof(TCB_t));
+  char *func_stack = malloc(sizeof(char)* 16384);
+  if (tcb == NULL) {
+    puts("Error");
+    return -1;
+  } else {
+    tcb->tid = 2;
+    tcb->state = PROCST_APTO;
+
+    if (getcontext(&(tcb->context)) == -1) {
+      puts("Error getcontext");
+      return -1;
+    } else {
+      tcb->context.uc_stack.ss_sp = func_stack;
+      tcb->context.uc_stack.ss_size = sizeof(func_stack);
+      makecontext(&(tcb->context), (void*)(*start), 0);
+      puts("Funcionou talvez");
+      return 0;
+    }
+  }
+};
 
 /******************************************************************************
 Par�metros:
