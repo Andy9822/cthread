@@ -4,6 +4,10 @@
 #include "../include/cdata.h"
 #include "../include/support.h"
 
+#define EQUALS 0
+#define SUCCEEDED 0
+#define FAILED -1
+
 /******************************************************************************
 Par�metros:
 	name:	ponteiro para uma �rea de mem�ria onde deve ser escrito um string que cont�m os nomes dos componentes do grupo e seus n�meros de cart�o.
@@ -21,6 +25,11 @@ int cidentify (char *name, int size) {
 	for(i=0;i<size && i < 73;i++) {
 		name[i] = identity[i];
 	}
+  if(strcmp(identity,name) == EQUALS) {
+    return SUCCEEDED;
+  } else {
+    return FAILED;
+  }
 };
 
 /******************************************************************************
