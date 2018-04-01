@@ -1,13 +1,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
 #include "../include/cthread.h"
 #include "../include/cdata.h"
-#include "../include/support.h"
+#include "../include/mysupport.h"
+#include "../include/LGA_logger.h"
 
 #define EQUALS 0
 #define SUCCEEDED 0
 #define FAILED -1
+
+FILA2 apt, exec, bloq;
+TCB_t mainThread;
+int firstThread = 1;
 
 /******************************************************************************
 Par�metros:
@@ -44,23 +50,46 @@ Retorno:
 ******************************************************************************/
 int ccreate (void* (*start)(void*), void *arg, int prio) {
   TCB_t *tcb = malloc(sizeof(TCB_t));
-  char *func_stack = malloc(sizeof(char)* 16384);
-  if (tcb == NULL) {
-    puts("Error");
-    return -1;
-  } else {
-    tcb->tid = 2;
-    tcb->state = PROCST_APTO;
+  char func_stack[16384] = {0};
 
+  if(firstThread == 1) {
+    firstThread = 0;
+    LGA_LOGGER_LOG("Creating Main Thread");
+    mainThread.tid = 0;
+    mainThread.state = PROCST_APTO;
+    if (getcontext(&(mainThread.context)) != 0) {
+      puts("[ERROR] Cannot create main thread context");
+      free(tcb);
+      return FAILED;
+    }
+  }
+  if (tcb == NULL) {
+    LGA_LOGGER_ERROR("TCB Couldnt be created");
+    return FAILED;
+  } else {
+    if (&apt == NULL) {
+      CreateFila2(&apt);
+    }
     if (getcontext(&(tcb->context)) == -1) {
-      puts("Error getcontext");
-      return -1;
+      free(tcb);
+      LGA_LOGGER_ERROR("Getting the Context");
+      return FAILED;
     } else {
+      getcontext(&(tcb->context));
+      tcb->tid = 2;
+      tcb->state = PROCST_APTO;
       tcb->context.uc_stack.ss_sp = func_stack;
       tcb->context.uc_stack.ss_size = sizeof(func_stack);
-      makecontext(&(tcb->context), (void*)(*start), 0);
-      puts("Funcionou talvez");
-      return 0;
+      tcb->context.uc_link = &(mainThread.context);
+      makecontext(&(tcb->context), (void (*) (void)) start, 1, (void *)arg);
+      if (InsertAfterIteratorFila2(&apt, tcb) == 0) {
+        LGA_LOGGER_LOG("Inserted Succesfully");
+        return SUCCEEDED;
+      } else {
+        free(tcb);
+        LGA_LOGGER_ERROR("Inserted Failed");
+        return FAILED;
+      }
     }
   }
 };
@@ -81,7 +110,12 @@ Retorno:
 	Se correto => 0 (zero)
 	Se erro	   => Valor negativo.
 ******************************************************************************/
-int cjoin(int tid);
+int cjoin(int tid) {
+  PNODE2 node = GetAtIteratorFila2(&apt);
+  swapcontext(&(mainThread.context),&((TCB_t *)node->node)->context);
+  NextFila2(&apt);
+  return SUCCEEDED;
+};
 
 /******************************************************************************
 Par�metros:
