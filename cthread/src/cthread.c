@@ -76,11 +76,13 @@ int ccreate (void* (*start)(void*), void *arg, int prio) {
       return FAILED;
     } else {
       getcontext(&(tcb->context));
+      LGA_LOGGER_LOG("Creating the Context");
       tcb->tid = 2;
       tcb->state = PROCST_APTO;
       tcb->context.uc_stack.ss_sp = func_stack;
       tcb->context.uc_stack.ss_size = sizeof(func_stack);
       tcb->context.uc_link = &(mainThread.context);
+      LGA_LOGGER_LOG("Changing the Context");
       makecontext(&(tcb->context), (void (*) (void)) start, 1, (void *)arg);
       if (InsertAfterIteratorFila2(&apt, tcb) == 0) {
         LGA_LOGGER_LOG("Inserted Succesfully");

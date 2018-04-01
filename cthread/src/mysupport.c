@@ -1,8 +1,11 @@
 #include <time.h>
 #include <stdlib.h>
-#include "../include/mysupport.h"
 #include <stdio.h>
+
 #include "../include/cdata.h"
+#include "../include/mysupport.h"
+#include "../include/LGA_logger.h"
+
 
 /********************************************************************
 
@@ -28,17 +31,17 @@ Ret:	==0, se conseguiu
 -------------------------------------------------------------------*/
 int	CreateFila2(PFILA2 pFila) {
   if (pFila == NULL) {
-    puts("[LOG] Criando a fila");
+    LGA_LOGGER_LOG("Criando a fila");
     pFila = malloc(sizeof (FILA2));
     pFila->it = NULL;
     pFila->first = NULL;
     pFila->last = NULL;
     if (pFila == NULL) {
-      puts("[ERROR] Cannot create the queue");
+      LGA_LOGGER_ERROR("Cannot create the queue");
     }
     return 0;
   } else {
-    puts("[ERROR] Creating a Queue in a non-empty variable");
+    LGA_LOGGER_ERROR("Creating a Queue in a non-empty variable");
     return -1;
   }
 };
@@ -55,11 +58,11 @@ int	FirstFila2(PFILA2 pFila) {
       pFila->it = pFila->first;
       return 0;
     } else {
-      puts("[ERROR] Getting the first from a empty Queue");
+      LGA_LOGGER_ERROR("Getting the first from a empty Queue");
       return -1;
     }
   } else {
-    puts("[ERROR] Getting the first from a NULL Queue");
+    LGA_LOGGER_ERROR("Getting the first from a NULL Queue");
     return -1;
   }
 };
@@ -76,11 +79,11 @@ int	LastFila2(PFILA2 pFila) {
       pFila->it = pFila->last;
       return 0;
     } else {
-      puts("[ERROR] Getting the last from a empty Queue");
+      LGA_LOGGER_ERROR("Getting the last from a empty Queue");
       return -1;
     }
   } else {
-    puts("[ERROR] Getting the last from a NULL Queue");
+    LGA_LOGGER_ERROR("Getting the last from a NULL Queue");
     return -1;
   }
 };
@@ -104,15 +107,15 @@ int	NextFila2(PFILA2 pFila) {
       pFila->it = pFila->it->next;
       return 0;
       } else {
-        puts("[WARNING] Getting the next when theres none");
+        LGA_LOGGER_WARNING("Getting the next when theres none");
         return -1;
       }
     } else {
-      puts("[ERROR] Getting the next from a empty queue");
+      LGA_LOGGER_ERROR("Getting the next from a empty queue");
       return -1;
     }
   } else {
-    puts("[ERROR] Getting the next element from a NULL Queue");
+    LGA_LOGGER_ERROR("Getting the next element from a NULL Queue");
     return -1;
   }
 };
@@ -130,11 +133,11 @@ void	*GetAtIteratorFila2(PFILA2 pFila) {
     if(pFila->it != NULL) {
       return pFila->it;
     } else {
-      puts("[ERROR] Getting the it from a empty Queue");
+      LGA_LOGGER_ERROR("Getting the it from a empty Queue");
       return NULL;
     }
   } else {
-    puts("[ERROR] Getting the it from a NULL Queue");
+    LGA_LOGGER_ERROR("Getting the it from a NULL Queue");
     return NULL;
   }
 };
@@ -203,7 +206,7 @@ int	InsertAfterIteratorFila2(PFILA2 pFila, void *content) {
     }
   } else {
     free(node);
-    puts("[ERROR] Inserting into a NULL Queue");
+    LGA_LOGGER_ERROR("Inserting into a NULL Queue");
     return -1;
   }
 }

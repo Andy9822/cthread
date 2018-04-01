@@ -10,7 +10,7 @@
  * @param text LogText
  */
 void LGA_LOGGER_LOG(char * text) {
-  char *debugText = malloc(sizeof(char) * strlen(text) + 2 * sizeof(char));
+  char *debugText = malloc(sizeof(char) * strlen(text) + 4 * sizeof(char));
   strcat(debugText, text);
   strcat(debugText, "\n");
 
@@ -26,7 +26,7 @@ void LGA_LOGGER_LOG(char * text) {
  * @param text TestText
  */
 void LGA_LOGGER_TEST(char * text) {
-  char *debugText = malloc(sizeof(char) * strlen(text) + 2 * sizeof(char));
+  char *debugText = malloc(sizeof(char) * strlen(text) + 4 * sizeof(char));
   strcat(debugText, text);
   strcat(debugText, "\n");
   if(LGA_LOGGER_STATUS >= LGA_TEST && LGA_LOGGER_TEST_STATUS == LGA_ENABLE) {
@@ -41,7 +41,7 @@ void LGA_LOGGER_TEST(char * text) {
  * @param text ErrorText
  */
 void LGA_LOGGER_ERROR(char * text) {
-  char *debugText = malloc(sizeof(char) * strlen(text) + 2 * sizeof(char));
+  char *debugText = malloc(sizeof(char) * strlen(text) + 4 * sizeof(char));
   strcat(debugText, text);
   strcat(debugText, "\n");
   if(LGA_LOGGER_STATUS >= LGA_ERROR) {
@@ -56,7 +56,7 @@ void LGA_LOGGER_ERROR(char * text) {
  * @param text WarningText
  */
 void LGA_LOGGER_WARNING(char * text) {
-  char *debugText = malloc(sizeof(char) * strlen(text) + 2 * sizeof(char));
+  char *debugText = malloc(sizeof(char) * strlen(text) + 4 * sizeof(char));
   strcat(debugText, text);
   strcat(debugText, "\n");
   if(LGA_LOGGER_STATUS >= LGA_WARNING) {

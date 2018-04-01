@@ -39,12 +39,11 @@ int main(int argc, char *argv[]) {
 	id1 = ccreate(func1, (void *)&i, 0);
 
 	LGA_LOGGER_LOG("Main after creating both threads");
-
 	if(id0 == 0)
 		cjoin(1);
 
 	LGA_LOGGER_LOG("Main after thread 1");
-	LGA_LOGGER_ERROR("CUUU");
+
 	i = 2;
 
 	if(id1 == 0)
