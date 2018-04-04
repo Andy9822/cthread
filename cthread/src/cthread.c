@@ -239,21 +239,21 @@ int LGA_init() {
   main_tcb = (TCB_t *) malloc(sizeof(TCB_t));
 
   if(CreateFila2(&apt) == SUCCEEDED) {
-    LGA_LOGGER_LOG("Created the Apt Queue");
+    LGA_LOGGER_LOG("[LGA_init] Created the Apt Queue");
   } else {
-    LGA_LOGGER_ERROR("Apt Queue couldnt be created");
+    LGA_LOGGER_ERROR("[LGA_init] Apt Queue couldnt be created");
     return FAILED;
   }
   if(CreateFila2(&exec) == SUCCEEDED) {
-    LGA_LOGGER_LOG("Created the Exec Queue");
+    LGA_LOGGER_LOG("[LGA_init] Created the Exec Queue");
   } else {
-    LGA_LOGGER_ERROR("Exec Queue couldnt be created");
+    LGA_LOGGER_ERROR("[LGA_init] Exec Queue couldnt be created");
     return FAILED;
   }
   if(CreateFila2(&bloq) == SUCCEEDED) {
-    LGA_LOGGER_LOG("Created the Bloq Queue");
+    LGA_LOGGER_LOG("[LGA_init] Created the Bloq Queue");
   } else {
-    LGA_LOGGER_ERROR("Bloq Queue couldnt be created");
+    LGA_LOGGER_ERROR("[LGA_init] Bloq Queue couldnt be created");
     return FAILED;
   }
 
@@ -263,37 +263,37 @@ int LGA_init() {
     main_tcb->context.uc_stack.ss_sp = (char*) malloc(163840);
     main_tcb->context.uc_stack.ss_size = 163840;
     main_tcb->context.uc_link = NULL;
-    LGA_LOGGER_LOG("Main Thread Created");
+    LGA_LOGGER_LOG("[LGA_init] Main Thread Created");
   } else {
-    LGA_LOGGER_ERROR("The Main thread couldnt be created");
+    LGA_LOGGER_ERROR("[LGA_init] The Main thread couldnt be created");
     return FAILED;
   }
   if (AppendFila2(&exec, main_tcb) == SUCCEEDED) {
-    LGA_LOGGER_LOG("Main Thread inserted in exec");
+    LGA_LOGGER_LOG("[LGA_init] Main Thread inserted in exec");
   } else {
-    LGA_LOGGER_ERROR("The Main thread couldnt be inserted in the exec queue");
+    LGA_LOGGER_ERROR("[LGA_init] The Main thread couldnt be inserted in the exec queue");
     return FAILED;
   }
 
   if (getcontext(final_context) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("Couldnt get the final context");
+    LGA_LOGGER_ERROR("[LGA_init] Couldnt get the final context");
     return FAILED;
   }
-  LGA_LOGGER_LOG("Creating Final Context");
+  LGA_LOGGER_LOG("[LGA_init] Creating Final Context");
   final_context->uc_link = NULL;
   final_context->uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
   final_context->uc_stack.ss_size = STACK_SIZE;
-  makecontext(final_context, (void (*) (void)) LGA_final, 0);
+  makecontext(final_context, (void (*) (void)) CB_end_thread, 0);
 
   if (getcontext(thread_release) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("Couldnt get the final context");
+    LGA_LOGGER_ERROR("[LGA_init] Couldnt get the final context");
     return FAILED;
   }
-  LGA_LOGGER_LOG("Creating Thread Release Context");
+  LGA_LOGGER_LOG("[LGA_init] Creating Thread Release Context");
   thread_release->uc_link = NULL;
   thread_release->uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
   thread_release->uc_stack.ss_size = STACK_SIZE;
-  makecontext(thread_release, (void (*) (void)) LGA_thread_release, 0);
+  makecontext(thread_release, (void (*) (void)) CB_cjoin_release, 0);
 
   return SUCCEEDED;
 }
