@@ -41,7 +41,6 @@ int main(int argc, char *argv[]) {
 
 	LGA_LOGGER_TEST("Main after creating both threads");
 
-	//printf("%d\n", id1);
 	cjoin(id0);
 
 	LGA_LOGGER_TEST("Main after thread 1");
