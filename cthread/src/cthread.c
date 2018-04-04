@@ -15,8 +15,13 @@ ucontext_t *final_context = NULL, *thread_release = NULL;
 TCB_t *main_tcb = NULL;
 
 int LGA_init();
-void* LGA_final(void *arg);
-void* LGA_thread_release(void *tid);
+/*
+  Functions to avoid reewriting code and ease the process of developing
+  this program
+ */
+void LGA_next_thread();
+void* LGA_find_element(int tid);
+int LGA_dispose_exec_thread();
 int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insert, int state);
 
 /******************************************************************************
@@ -376,27 +381,102 @@ void* LGA_thread_release(void *tid) {
   return END_CONTEXT;
 }
 
-int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insert, int state) {
+/*
+  Move a Tcb_t that has the TID from removeQueue to insertQueue and change
+  its state to new state
+  Return 0 - SUCCEEDED
+  Return -1 - FAILED
+ */
+int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insertQueue, int state) {
   TCB_t *tcb = NULL;
 
-  tcb = (TCB_t *) LGA_tidGetFila(removeQueue, tid);
+  tcb = (TCB_t *) LGA_tid_get_from_fila(removeQueue, tid);
 
   if (tcb == NULL) {
     LGA_LOGGER_ERROR("[LGA_move_queues] TCB is null");
     return FAILED;
   }
 
-  if (LGA_tidRemoveFila (removeQueue, tid) != SUCCEEDED) {
+  if (LGA_tid_remove_from_fila (removeQueue, tid) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[LGA_move_queues] Couldnt remove from the queue");
     return FAILED;
   }
 
-  if(AppendFila2(insert, (void *) tcb) == SUCCEEDED) {
+  if(AppendFila2(insertQueue, (void *) tcb) == SUCCEEDED) {
     tcb->state = state;
     LGA_LOGGER_LOG("[LGA_move_queues] Inserted first element");
   } else {
-    LGA_LOGGER_ERROR("[LGA_move_queues] The element from apt couldnt be inserted");
+    LGA_LOGGER_ERROR("[LGA_move_queues] The element from apt couldnt be insertQueueed");
     return FAILED;
   }
   return SUCCEEDED;
+}
+
+/*
+  Move the first element from Apt Queue to Exec Queue
+ */
+void LGA_next_thread() {
+  TCB_t *tcb;
+
+  if (FirstFila2(&apt) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[LGA_next_thread] Couldnt set the iterator to the first element of apt");
+    return;
+  }
+
+  tcb = (TCB_t *) GetAtIteratorFila2(&apt);
+
+  if(tcb == NULL) {
+    LGA_LOGGER_ERROR("[LGA_next_thread] TCB is null");
+    return;
+  }
+
+  if(LGA_move_queues(tcb->tid, &apt, &exec, PROCST_EXEC) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[LGA_next_thread] Couldnt move the element from apt to exec");
+    return;
+  }
+
+  LGA_LOGGER_LOG("Setting the thread in exec to execute");
+  setcontext(&(tcb->context));
+}
+
+/*
+  Free the element of EXEC
+  Return 0 - SUCCEEDED
+  Return -1 - FAILED
+ */
+int LGA_dispose_exec_thread() {
+  TCB_t *tcb_disposed;
+
+  if(FirstFila2(&exec) == SUCCEEDED) {
+    LGA_LOGGER_LOG("[LGA_dispose_exec_thread] Exec is not empty");
+  } else {
+    LGA_LOGGER_WARNING("[LGA_dispose_exec_thread] Exec is empty");
+    return FAILED;
+  }
+
+  tcb_disposed = (TCB_t *) GetAtIteratorFila2(&exec);
+
+  if (DeleteAtIteratorFila2(&exec) == SUCCEEDED) {
+    free(tcb_disposed->context.uc_stack.ss_sp);
+    free(tcb_disposed);
+    LGA_LOGGER_LOG("[LGA_dispose_exec_thread] Disposed the first element from exec");
+    return SUCCEEDED;
+  } else {
+    LGA_LOGGER_ERROR("[LGA_dispose_exec_thread] The element of exec couldnt be disposed");
+    return FAILED;
+  }
+}
+
+void* LGA_find_element(int tid) {
+  if(LGA_tid_inside_of_fila(&apt, tid) == SUCCEEDED) {
+    LGA_LOGGER_LOG("[LGA_find_queue] Found the tid inside the Apt Queue");
+    return (void *)LGA_tid_get_from_fila(&apt, tid);
+  }
+
+  if(LGA_tid_inside_of_fila(&bloq, tid) == SUCCEEDED) {
+    LGA_LOGGER_LOG("[LGA_find_queue] Found the tid inside the Bloq Queue");
+    return (void *)LGA_tid_get_from_fila(&bloq, tid);
+  }
+  LGA_LOGGER_WARNING("[LGA_find_queue] The element isnt in the Apt nor Bloq queues");
+  return NULL;
 }
