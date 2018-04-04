@@ -7,8 +7,8 @@
 #define END_CONTEXT 0
 #define STACK_SIZE 163840
 
-int LGA_tidInsideFila(PFILA2 pFila, int tid);
+int LGA_tid_inside_of_fila(PFILA2 pFila, int tid);
 
-int LGA_tidRemoveFila (PFILA2 pFila, int tid);
+int LGA_tid_remove_from_fila (PFILA2 pFila, int tid);
 
-void* LGA_tidGetFila (PFILA2 pFila, int tid);
+void* LGA_tid_get_from_fila (PFILA2 pFila, int tid);

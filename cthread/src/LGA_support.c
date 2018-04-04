@@ -10,51 +10,51 @@
   Return 0 SUCCEEDED
   Return -1 FAILED
  */
-int LGA_tidInsideFila (PFILA2 pFila, int tid) {
+int LGA_tid_inside_of_fila (PFILA2 pFila, int tid) {
   TCB_t *tcb_temp;
 
   if (pFila == NULL) {
-    LGA_LOGGER_WARNING("[LGA_tidInsideFila] The queue is empty");
+    LGA_LOGGER_WARNING("[LGA_tid_inside_of_fila] The queue is empty");
     return FAILED;
   }
 
   if (FirstFila2(pFila) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("[LGA_tidInsideFila] Couldnt set the first element");
+    LGA_LOGGER_WARNING("[LGA_tid_inside_of_fila] Couldnt set the first element");
     return FAILED;
   }
 
   tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
 
   if (tcb_temp == NULL) {
-    LGA_LOGGER_ERROR("[LGA_tidInsideFila] The tcb is NULL");
+    LGA_LOGGER_ERROR("[LGA_tid_inside_of_fila] The tcb is NULL");
     return FAILED;
   }
 
   if (tcb_temp->tid == tid) {
-    LGA_LOGGER_LOG("[LGA_tidInsideFila] The tid was found");
+    LGA_LOGGER_LOG("[LGA_tid_inside_of_fila] The tid was found");
     return SUCCEEDED;
   }
   while(NextFila2(pFila) == SUCCEEDED) {
     tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
 
     if (tcb_temp->tid == tid) {
-      LGA_LOGGER_LOG("[LGA_tidInsideFila] The tid was found");
+      LGA_LOGGER_LOG("[LGA_tid_inside_of_fila] The tid was found");
       return SUCCEEDED;
     }
   }
-  LGA_LOGGER_WARNING("[LGA_tidInsideFila] The tid wasnt found");
+  LGA_LOGGER_WARNING("[LGA_tid_inside_of_fila] The tid wasnt found");
   return FAILED;
 }
 
 /*
   Remove from the queue the element that has the given tid
-  Return 0 SUCCEEDED
-  Return -1 FAILED
+  Return 0 - SUCCEEDED
+  Return -1 - FAILED
  */
-int LGA_tidRemoveFila (PFILA2 pFila, int tid) {
+int LGA_tid_remove_from_fila (PFILA2 pFila, int tid) {
   TCB_t *tcb_temp;
 
-  if (LGA_tidInsideFila(pFila, tid) == SUCCEEDED) {
+  if (LGA_tid_inside_of_fila(pFila, tid) == SUCCEEDED) {
     if (FirstFila2(pFila) != SUCCEEDED) {
       LGA_LOGGER_ERROR("Couldnt set the first element");
       return FAILED;
@@ -95,23 +95,23 @@ int LGA_tidRemoveFila (PFILA2 pFila, int tid) {
   Return Valid Pointer - SUCCEEDED
   Return NULL - FAILED
  */
-void* LGA_tidGetFila (PFILA2 pFila, int tid) {
+void* LGA_tid_get_from_fila (PFILA2 pFila, int tid) {
   TCB_t *tcb_temp;
 
-  if (LGA_tidInsideFila(pFila, tid) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("[LGA_tidInsideFila] The element is not inside the queue");
+  if (LGA_tid_inside_of_fila(pFila, tid) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[LGA_tid_inside_of_fila] The element is not inside the queue");
     return NULL;
   }
 
   if (FirstFila2(pFila) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("[LGA_tidInsideFila] Cant set the first element");
+    LGA_LOGGER_ERROR("[LGA_tid_inside_of_fila] Cant set the first element");
     return NULL;
   }
 
   tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
 
   if (tcb_temp->tid == tid) {
-    LGA_LOGGER_LOG("[LGA_tidInsideFila] Get the element of the queue");
+    LGA_LOGGER_LOG("[LGA_tid_inside_of_fila] Get the element of the queue");
     return (void *) tcb_temp;
   }
 
@@ -119,7 +119,7 @@ void* LGA_tidGetFila (PFILA2 pFila, int tid) {
     tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
 
     if (tcb_temp->tid == tid) {
-      LGA_LOGGER_LOG("[LGA_tidInsideFila] Get the element of the queue");
+      LGA_LOGGER_LOG("[LGA_tid_inside_of_fila] Get the element of the queue");
       return (void *) tcb_temp;
     }
   }
