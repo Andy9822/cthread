@@ -1,0 +1,127 @@
+#include <stdlib.h>
+
+#include "../include/LGA_logger.h"
+#include "../include/LGA_support.h"
+#include "../include/cdata.h"
+
+/*
+  Verify if exists an element that has the given tid
+  in the given queue.
+  Return 0 SUCCEEDED
+  Return -1 FAILED
+ */
+int LGA_tidInsideFila (PFILA2 pFila, int tid) {
+  TCB_t *tcb_temp;
+
+  if (pFila == NULL) {
+    LGA_LOGGER_WARNING("[LGA_tidInsideFila] The queue is empty");
+    return FAILED;
+  }
+
+  if (FirstFila2(pFila) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[LGA_tidInsideFila] Couldnt set the first element");
+    return FAILED;
+  }
+
+  tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
+
+  if (tcb_temp == NULL) {
+    LGA_LOGGER_ERROR("[LGA_tidInsideFila] The tcb is NULL");
+    return FAILED;
+  }
+
+  if (tcb_temp->tid == tid) {
+    LGA_LOGGER_LOG("[LGA_tidInsideFila] The tid was found");
+    return SUCCEEDED;
+  }
+  while(NextFila2(pFila) == SUCCEEDED) {
+    tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
+
+    if (tcb_temp->tid == tid) {
+      LGA_LOGGER_LOG("[LGA_tidInsideFila] The tid was found");
+      return SUCCEEDED;
+    }
+  }
+  LGA_LOGGER_WARNING("[LGA_tidInsideFila] The tid wasnt found");
+  return FAILED;
+}
+
+/*
+  Remove from the queue the element that has the given tid
+  Return 0 SUCCEEDED
+  Return -1 FAILED
+ */
+int LGA_tidRemoveFila (PFILA2 pFila, int tid) {
+  TCB_t *tcb_temp;
+
+  if (LGA_tidInsideFila(pFila, tid) == SUCCEEDED) {
+    if (FirstFila2(pFila) != SUCCEEDED) {
+      LGA_LOGGER_ERROR("Couldnt set the first element");
+      return FAILED;
+    }
+
+    tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
+    if (tcb_temp->tid == tid) {
+      LGA_LOGGER_LOG("The tid was found");
+      if (DeleteAtIteratorFila2(pFila) == SUCCEEDED) {
+        LGA_LOGGER_LOG("The tid was removed");
+        return SUCCEEDED;
+      } else {
+        LGA_LOGGER_ERROR("The tid wasnt removed");
+        return FAILED;
+      }
+    }
+    while(NextFila2(pFila) == SUCCEEDED) {
+      tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
+
+      if (tcb_temp->tid == tid) {
+        LGA_LOGGER_LOG("The tid was found");
+        if (DeleteAtIteratorFila2(pFila) == SUCCEEDED) {
+          LGA_LOGGER_LOG("The tid was removed");
+          return SUCCEEDED;
+        } else {
+          LGA_LOGGER_ERROR("The tid wasnt removed");
+          return FAILED;
+        }
+      }
+    }
+    return FAILED;
+  }
+}
+
+/*
+  Get the TCB referation from the queue
+  You must cast to (TCB_t *) before use it
+  Return Valid Pointer - SUCCEEDED
+  Return NULL - FAILED
+ */
+void* LGA_tidGetFila (PFILA2 pFila, int tid) {
+  TCB_t *tcb_temp;
+
+  if (LGA_tidInsideFila(pFila, tid) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[LGA_tidInsideFila] The element is not inside the queue");
+    return NULL;
+  }
+
+  if (FirstFila2(pFila) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[LGA_tidInsideFila] Cant set the first element");
+    return NULL;
+  }
+
+  tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
+
+  if (tcb_temp->tid == tid) {
+    LGA_LOGGER_LOG("[LGA_tidInsideFila] Get the element of the queue");
+    return (void *) tcb_temp;
+  }
+
+  while(NextFila2(pFila) == SUCCEEDED) {
+    tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
+
+    if (tcb_temp->tid == tid) {
+      LGA_LOGGER_LOG("[LGA_tidInsideFila] Get the element of the queue");
+      return (void *) tcb_temp;
+    }
+  }
+  return NULL;
+}

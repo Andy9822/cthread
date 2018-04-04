@@ -33,23 +33,25 @@ int main(int argc, char *argv[]) {
 
 	LGA_LOGGER_TEST("Testing ccreate and cjoin");
 
-	LGA_LOGGER_LOG("Creating both threads");
+	LGA_LOGGER_TEST("Creating both threads");
 
 	id0 = ccreate(func0, (void *)&i, 0);
+
 	id1 = ccreate(func1, (void *)&i, 0);
 
-	LGA_LOGGER_LOG("Main after creating both threads");
-	if(id0 == 0)
-		cjoin(1);
+	LGA_LOGGER_TEST("Main after creating both threads");
 
-	LGA_LOGGER_LOG("Main after thread 1");
+	printf("%d\n", id0);
+	printf("%d\n", id1);
+	cjoin(id0);
+
+	LGA_LOGGER_TEST("Main after thread 1");
 
 	i = 2;
 
-	if(id1 == 0)
-		cjoin(2);
+	cjoin(id1);
 
-	LGA_LOGGER_LOG("Main after thread 2");
+	LGA_LOGGER_TEST("Main after thread 2");
 
 	return 0;
 }
