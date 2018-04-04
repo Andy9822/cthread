@@ -119,14 +119,7 @@ Retorno:
 	Se erro	   => Valor negativo.
 ******************************************************************************/
 int cjoin(int tid) {
-  TCB_t *tcb_resumed = NULL, *tcb_blocked = NULL;
-
-  if(FirstFila2(&apt) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[cjoin] Apt is not empty");
-  } else {
-    LGA_LOGGER_WARNING("[cjoin] Apt is empty");
-    return FAILED;
-  }
+  TCB_t *tcb_blocked = NULL, *tcb_trigger_release = NULL;
 
   if(FirstFila2(&exec) == SUCCEEDED) {
     LGA_LOGGER_LOG("[cjoin] Exec is not empty");
@@ -135,50 +128,28 @@ int cjoin(int tid) {
     return FAILED;
   }
 
+  tcb_trigger_release = LGA_find_element(tid);
+
+  if(tcb_trigger_release == NULL) {
+    LGA_LOGGER_WARNING("[cjoin] Theres none threads with this tid, so i wont block");
+    return FAILED;
+  }
+
   tcb_blocked = (TCB_t *) GetAtIteratorFila2(&exec);
-  if (tcb_blocked == NULL) {
-    LGA_LOGGER_WARNING("[cjoin] Exec is empty");
-  }
-  if (DeleteAtIteratorFila2(&exec) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[cjoin] Removed the first element from exec");
-    if(AppendFila2(&bloq, (void *) tcb_blocked) == SUCCEEDED) {
-      tcb_blocked->state = PROCST_BLOQ;
-      LGA_LOGGER_LOG("[cjoin] Inserted the first element from exec to bloq");
-    } else {
-      LGA_LOGGER_ERROR("[cjoin] The first element from exec couldnt be inserted into bloq");
-      return FAILED;
-    }
-  } else {
-    LGA_LOGGER_LOG("[cjoin] The first element couldnt be removed from exec");
-  }
 
-  if (LGA_tidInsideFila(&apt, tid) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("[cjoin] Thread isnt in the apt queue");
+  if (LGA_move_queues(tcb_blocked->tid, &exec, &bloq, PROCST_BLOQ) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[cjoin] Couldnt move the thread from exec to bloq");
     return FAILED;
   }
+  LGA_LOGGER_LOG("[cjoin] Moved the thread from exec to bloq");
 
-  tcb_resumed = (TCB_t *) LGA_tidGetFila(&apt, tid);
-
-  if (tcb_resumed == NULL) {
-    LGA_LOGGER_WARNING("[cjoin] TCB released is NULL");
-    return END_CONTEXT;
-  }
-
-  if (DeleteAtIteratorFila2(&apt) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[cjoin] Removed the first element from apt");
-    if(AppendFila2(&exec, (void *) tcb_resumed) == SUCCEEDED) {
-      tcb_resumed->state = PROCST_EXEC;
-      makecontext(tcb_resumed->context.uc_link, (void (*) (void)) LGA_thread_release, 1, (void *)&(tcb_blocked->tid)),
-      LGA_LOGGER_LOG("[cjoin] Inserted the first element from apt to exec");
-    } else {
-      LGA_LOGGER_ERROR("[cjoin] The first element from apt couldnt be inserted into exec");
-      return FAILED;
-    }
-  } else {
-    LGA_LOGGER_LOG("[cjoin] The first element couldnt be removed from apt");
-    return FAILED;
-  }
-  setcontext(&(tcb_resumed->context));
+  // Make the callback of the TCB_TRIGGER_RELEASE be the CB_cjoin_release with
+  // the tcb_blocked->tid to release it when the TCB__TRIGGER_RELEASE is done
+  makecontext(tcb_trigger_release->context.uc_link, (void (*) (void)) CB_cjoin_release, 1, \
+    (void *)&(tcb_blocked->tid));
+  LGA_LOGGER_LOG("[cjoin] Change the UC_LINK of Tcb_trigger");
+  // Get the next thread in EXEC
+  LGA_next_thread();
 };
 
 /******************************************************************************
