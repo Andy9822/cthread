@@ -15,6 +15,13 @@ ucontext_t *final_context = NULL, *thread_release = NULL;
 TCB_t *main_tcb = NULL;
 
 int LGA_init();
+
+/*
+  Only use as callback to change the final context of a thread
+ */
+void* CB_end_thread(void *arg);
+void* CB_cjoin_release(void *tid);
+
 /*
   Functions to avoid reewriting code and ease the process of developing
   this program
@@ -296,88 +303,36 @@ int LGA_init() {
   because this function should be at context.uc_link
   This function move a thread from Apt to Exec and Free the context structure
  */
-void* LGA_final(void *arg) {
-  TCB_t *tcb_finalized = NULL, *tcb_resumed = NULL;
-
-  if(FirstFila2(&apt) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_final] Apt is not empty");
-  } else {
-    LGA_LOGGER_WARNING("[LGA_final] Apt is empty");
+void* CB_end_thread(void *arg) {
+  TCB_t *tcb_finalized = NULL;
+  // Dispose the element from EXEC
+  if (LGA_dispose_exec_thread() != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[CB_end_thread] Couldnt dispose the element from exec");
     return END_CONTEXT;
   }
+  // Get the next thread from APT and exec it
+  LGA_next_thread();
 
-  if(FirstFila2(&exec) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_final] Exec is not empty");
-  } else {
-    LGA_LOGGER_WARNING("[LGA_final] Exec is empty");
-    return END_CONTEXT;
-  }
-
-  tcb_finalized = (TCB_t *) GetAtIteratorFila2(&exec);
-
-  if (DeleteAtIteratorFila2(&exec) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_final] Freeing the first element from exec");
-    free(tcb_finalized->context.uc_stack.ss_sp);
-    free(tcb_finalized);
-  } else {
-    LGA_LOGGER_LOG("[LGA_final] The first element couldnt be removed from exec");
-  }
-
-  tcb_resumed = (TCB_t *) GetAtIteratorFila2(&apt);
-/*
-  if (DeleteAtIteratorFila2(&apt) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_final] Removed the first element from apt");
-    if(AppendFila2(&exec, (void *) tcb_resumed) == SUCCEEDED) {
-      tcb_resumed->state = PROCST_EXEC;
-      LGA_LOGGER_LOG("[LGA_final] Inserted the first element from apt to exec");
-    } else {
-      LGA_LOGGER_ERROR("[LGA_final] The first element from apt couldnt be inserted into exec");
-      return END_CONTEXT;
-    }
-  } else {
-    LGA_LOGGER_LOG("[LGA_final] The first element couldnt be removed from apt");
-    return END_CONTEXT;
-  }*/
-  LGA_move_queues(tcb_resumed->tid, &apt, &exec, PROCST_EXEC);
-
-  LGA_LOGGER_LOG("[LGA_final] Swapping the context");
-  setcontext(&(tcb_resumed->context));
   return END_CONTEXT;
 }
 
-void* LGA_thread_release(void *tid) {
+/*
+  Release the thread that has the given tid from Bloq Queue to Apt Queue
+ */
+void* CB_cjoin_release(void *tid) {
   TCB_t *tcb_released = NULL;
-/*
-  if (LGA_tidInsideFila(&bloq, *(int*)tid) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("[LGA_thread_release] Thread isnt in the bloq queue");
-    return END_CONTEXT;
-  }*/
-/*
-  tcb_released = (TCB_t *) LGA_tidGetFila(&bloq, *(int*)tid);
-  if (tcb_released == NULL) {
-    LGA_LOGGER_WARNING("[LGA_thread_release] TCB released is NULL");
-    return END_CONTEXT;
-  }
 
-  if (LGA_tidRemoveFila(&bloq, *(int*)tid) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_thread_release] Remove the element from bloq");
-    if(AppendFila2(&apt, (void *) tcb_released) == SUCCEEDED) {
-      tcb_released->state = PROCST_APTO;
-      LGA_LOGGER_LOG("[LGA_thread_release] Insert the element from bloq to apt");
-    } else {
-      LGA_LOGGER_ERROR("[LGA_thread_release] The element from bloq couldnt be inserted into apt");
-      return END_CONTEXT;
-    }
-  } else {
-    LGA_LOGGER_LOG("[LGA_thread_release] The element couldnt be removed from bloq");
-    return END_CONTEXT;
-  }*/
   if (LGA_move_queues(*(int *) tid, &bloq, &apt, PROCST_APTO) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("Couldnt move from bloq to apt");
+    LGA_LOGGER_ERROR("[CB_cjoin_release] Couldnt move from bloq to apt");
     return END_CONTEXT;
   }
-  makecontext(final_context, (void (*) (void)) LGA_final, 0);
+  LGA_LOGGER_LOG("[CB_cjoin_release] Releasing thread");
+
+  // Change the context to CB_end_thread, cuz when a cjoin triggers it means that
+  // the actual thread is done doing its job, so we need to end it too
+  makecontext(final_context, (void (*) (void)) CB_end_thread, 0);
   setcontext(final_context);
+
   return END_CONTEXT;
 }
 
