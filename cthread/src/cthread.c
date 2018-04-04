@@ -12,8 +12,9 @@
 FILA2 apt, exec, bloq;
 int init = 1;
 ucontext_t *final_context = NULL, *thread_release = NULL;
+TCB_t *main_tcb = NULL;
 
-int LGA_init(TCB_t *tcb_main);
+int LGA_init();
 void* LGA_final(void *arg);
 void* LGA_thread_release(void *tid);
 int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insert, int state);
@@ -52,10 +53,10 @@ Retorno:
 	Se erro	   => Valor negativo.
 ******************************************************************************/
 int ccreate (void* (*start)(void*), void *arg, int prio) {
-  TCB_t *tcb_main = (TCB_t *) malloc(sizeof(TCB_t)), *tcb = (TCB_t *) malloc(sizeof(TCB_t));
+  TCB_t*tcb = (TCB_t *) malloc(sizeof(TCB_t));
 
   if (init) {
-    if(LGA_init(tcb_main) == SUCCEEDED) {
+    if(LGA_init() == SUCCEEDED) {
       LGA_LOGGER_LOG("Init completed");
     } else {
       LGA_LOGGER_ERROR("Init couldnt be completed");
@@ -80,6 +81,8 @@ int ccreate (void* (*start)(void*), void *arg, int prio) {
 
   if (AppendFila2(&apt, (void *)tcb) == SUCCEEDED) {
     LGA_LOGGER_LOG("Insert Succesfully");
+    /* Update the main thread context */
+    getcontext(&(main_tcb->context));
     return tcb->tid;
   } else {
     LGA_LOGGER_ERROR("The new thread couldn't be inserted in the apt queue");
@@ -127,7 +130,6 @@ int cjoin(int tid) {
   if (DeleteAtIteratorFila2(&exec) == SUCCEEDED) {
     LGA_LOGGER_LOG("[cjoin] Removed the first element from exec");
     if(AppendFila2(&bloq, (void *) tcb_blocked) == SUCCEEDED) {
-      printf("%d\n", tcb_blocked->state);
       tcb_blocked->state = PROCST_BLOQ;
       LGA_LOGGER_LOG("[cjoin] Inserted the first element from exec to bloq");
     } else {
@@ -218,10 +220,11 @@ int csignal(csem_t *sem);
   Return 0 - SUCCEEDED
   Return -1 - FAILED
   */
-int LGA_init(TCB_t *tcb_main) {
+int LGA_init() {
   init = 0;
   final_context = (ucontext_t *) malloc(sizeof(ucontext_t));
   thread_release = (ucontext_t *) malloc(sizeof(ucontext_t));
+  main_tcb = (TCB_t *) malloc(sizeof(TCB_t));
 
   if(CreateFila2(&apt) == SUCCEEDED) {
     LGA_LOGGER_LOG("Created the Apt Queue");
@@ -242,18 +245,18 @@ int LGA_init(TCB_t *tcb_main) {
     return FAILED;
   }
 
-  if (getcontext(&(tcb_main->context)) == SUCCEEDED) {
-    tcb_main->tid = 0;
-    tcb_main->state = PROCST_EXEC;
-    tcb_main->context.uc_stack.ss_sp = (char*) malloc(163840);
-    tcb_main->context.uc_stack.ss_size = 163840;
-    tcb_main->context.uc_link = NULL;
+  if (getcontext(&(main_tcb->context)) == SUCCEEDED) {
+    main_tcb->tid = 0;
+    main_tcb->state = PROCST_EXEC;
+    main_tcb->context.uc_stack.ss_sp = (char*) malloc(163840);
+    main_tcb->context.uc_stack.ss_size = 163840;
+    main_tcb->context.uc_link = NULL;
     LGA_LOGGER_LOG("Main Thread Created");
   } else {
     LGA_LOGGER_ERROR("The Main thread couldnt be created");
     return FAILED;
   }
-  if (AppendFila2(&exec, &tcb_main) == SUCCEEDED) {
+  if (AppendFila2(&exec, main_tcb) == SUCCEEDED) {
     LGA_LOGGER_LOG("Main Thread inserted in exec");
   } else {
     LGA_LOGGER_ERROR("The Main thread couldnt be inserted in the exec queue");
@@ -333,7 +336,6 @@ void* LGA_final(void *arg) {
   LGA_move_queues(tcb_resumed->tid, &apt, &exec, PROCST_EXEC);
 
   LGA_LOGGER_LOG("[LGA_final] Swapping the context");
-  printf("%d\n", tcb_resumed->tid);
   setcontext(&(tcb_resumed->context));
   return END_CONTEXT;
 }

@@ -18,7 +18,7 @@ void* func0(void *arg) {
 }
 
 void* func1(void *arg) {
-	if (*(int *)arg == 2) {
+	if (*(int *)arg == 5) {
 		LGA_LOGGER_TEST("Second Test SUCCEEDED");
 	} else {
 		LGA_LOGGER_TEST("Second Test FAILED");
@@ -41,8 +41,7 @@ int main(int argc, char *argv[]) {
 
 	LGA_LOGGER_TEST("Main after creating both threads");
 
-	printf("%d\n", id0);
-	printf("%d\n", id1);
+	//printf("%d\n", id1);
 	cjoin(id0);
 
 	LGA_LOGGER_TEST("Main after thread 1");
