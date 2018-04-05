@@ -25,6 +25,22 @@ test-ccreate:
 	$(CC) -c $(SRC_DIR)/LGA_support.c
 	$(CC) -o $(BUILD_DIR)/test-ccreate LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-ccreate.c -Wall
 
+test-cjoin:
+	rm -rf build
+	mkdir $(BUILD_DIR)
+	$(CC) -c $(SRC_DIR)/cthread.c
+	$(CC) -c $(SRC_DIR)/LGA_logger.c
+	$(CC) -c $(SRC_DIR)/LGA_support.c
+	$(CC) -o $(BUILD_DIR)/test-cjoin LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cjoin.c -Wall
+
+test-cyield:
+	rm -rf build
+	mkdir $(BUILD_DIR)
+	$(CC) -c $(SRC_DIR)/cthread.c
+	$(CC) -c $(SRC_DIR)/LGA_logger.c
+	$(CC) -c $(SRC_DIR)/LGA_support.c
+	$(CC) -o $(BUILD_DIR)/test-cyield LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cyield.c -Wall
+
 test-mandel:
 	rm -rf build
 	mkdir $(BUILD_DIR)
