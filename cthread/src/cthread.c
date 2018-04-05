@@ -11,7 +11,7 @@
 
 FILA2 apt, exec, bloq;
 int init = 1;
-ucontext_t *final_context = NULL, *thread_release = NULL;
+ucontext_t *final_context = NULL;
 TCB_t *main_tcb = NULL;
 
 int LGA_init();
@@ -27,6 +27,7 @@ void* CB_cjoin_release(void *tid);
   this program
  */
 void LGA_next_thread();
+void LGA_next_thread_swap(TCB_t *tcb);
 void* LGA_find_element(int tid);
 int LGA_dispose_exec_thread();
 int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insert, int state);
@@ -67,11 +68,13 @@ Retorno:
 int ccreate (void* (*start)(void*), void *arg, int prio) {
   TCB_t*tcb = (TCB_t *) malloc(sizeof(TCB_t));
 
+  LGA_LOGGER_IMPORTANT("[ccreate] Begun");
+
   if (init) {
     if(LGA_init() == SUCCEEDED) {
-      LGA_LOGGER_LOG("Init completed");
+      LGA_LOGGER_LOG("[ccreate] Init completed");
     } else {
-      LGA_LOGGER_ERROR("Init couldnt be completed");
+      LGA_LOGGER_ERROR("[ccreate] Init couldnt be completed");
       return FAILED;
     }
   }
@@ -81,23 +84,23 @@ int ccreate (void* (*start)(void*), void *arg, int prio) {
     return FAILED;
   }
 
-  LGA_LOGGER_LOG("Creating New Context");
+  LGA_LOGGER_LOG("[ccreate] Creating New Context");
   tcb->tid = (int) Random2();
   tcb->state = PROCST_APTO;
   tcb->context.uc_link = final_context;
   tcb->context.uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
   tcb->context.uc_stack.ss_size = STACK_SIZE;
 
-  LGA_LOGGER_LOG("Changing the New Thread context");
+  LGA_LOGGER_LOG("[ccreate] Changing the New Thread context");
   makecontext(&(tcb->context), (void (*) (void)) start, 1, (void *)arg);
 
   if (AppendFila2(&apt, (void *)tcb) == SUCCEEDED) {
-    LGA_LOGGER_LOG("Insert Succesfully");
+    LGA_LOGGER_LOG("[ccreate] Insert Succesfully");
     /* Update the main thread context */
     getcontext(&(main_tcb->context));
     return tcb->tid;
   } else {
-    LGA_LOGGER_ERROR("The new thread couldn't be inserted in the apt queue");
+    LGA_LOGGER_ERROR("[ccreate] The new thread couldn't be inserted in the apt queue");
     return FAILED;
   }
 };
@@ -109,7 +112,30 @@ Retorno:
 	Se correto => 0 (zero)
 	Se erro	   => Valor negativo.
 ******************************************************************************/
-int cyield(void);
+int cyield(void) {
+  TCB_t *tcb;
+  LGA_LOGGER_IMPORTANT("[cyield] Begun");
+  if(FirstFila2(&exec) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[cyield] Theres none thread running in exec");
+    return FAILED;
+  }
+  tcb = (TCB_t *) GetAtIteratorFila2(&exec);
+  if(tcb == NULL) {
+    LGA_LOGGER_ERROR("[cyield] TCB is null");
+    return FAILED;
+  }
+  LGA_LOGGER_LOG("[cyield] Get the element of exec");
+
+  if (LGA_move_queues(tcb->tid, &exec, &apt, PROCST_APTO) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[cyield]Couldnt remove from exec and insert into apt");
+    return FAILED;
+  }
+
+  LGA_LOGGER_LOG("[cyield] Moved the element from exec to apt");
+  LGA_next_thread_swap(tcb);
+
+  return SUCCEEDED;
+}
 
 /******************************************************************************
 Par�metros:
@@ -120,6 +146,8 @@ Retorno:
 ******************************************************************************/
 int cjoin(int tid) {
   TCB_t *tcb_blocked = NULL, *tcb_trigger_release = NULL;
+
+  LGA_LOGGER_IMPORTANT("[cjoin] Begun");
 
   if(FirstFila2(&exec) == SUCCEEDED) {
     LGA_LOGGER_LOG("[cjoin] Exec is not empty");
@@ -206,8 +234,9 @@ int csignal(csem_t *sem);
 int LGA_init() {
   init = 0;
   final_context = (ucontext_t *) malloc(sizeof(ucontext_t));
-  thread_release = (ucontext_t *) malloc(sizeof(ucontext_t));
   main_tcb = (TCB_t *) malloc(sizeof(TCB_t));
+
+  LGA_LOGGER_IMPORTANT("[LGA_init] Begun");
 
   if(CreateFila2(&apt) == SUCCEEDED) {
     LGA_LOGGER_LOG("[LGA_init] Created the Apt Queue");
@@ -256,16 +285,6 @@ int LGA_init() {
   final_context->uc_stack.ss_size = STACK_SIZE;
   makecontext(final_context, (void (*) (void)) CB_end_thread, 0);
 
-  if (getcontext(thread_release) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("[LGA_init] Couldnt get the final context");
-    return FAILED;
-  }
-  LGA_LOGGER_LOG("[LGA_init] Creating Thread Release Context");
-  thread_release->uc_link = NULL;
-  thread_release->uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
-  thread_release->uc_stack.ss_size = STACK_SIZE;
-  makecontext(thread_release, (void (*) (void)) CB_cjoin_release, 0);
-
   return SUCCEEDED;
 }
 
@@ -277,6 +296,8 @@ int LGA_init() {
 void* CB_end_thread(void *arg) {
   TCB_t *tcb_finalized = NULL;
   // Dispose the element from EXEC
+  //
+  LGA_LOGGER_IMPORTANT("[CB_end_thread] Begun");
   if (LGA_dispose_exec_thread() != SUCCEEDED) {
     LGA_LOGGER_ERROR("[CB_end_thread] Couldnt dispose the element from exec");
     return END_CONTEXT;
@@ -292,6 +313,8 @@ void* CB_end_thread(void *arg) {
  */
 void* CB_cjoin_release(void *tid) {
   TCB_t *tcb_released = NULL;
+
+  LGA_LOGGER_IMPORTANT("[CB_cjoin_release] Begun");
 
   if (LGA_move_queues(*(int *) tid, &bloq, &apt, PROCST_APTO) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[CB_cjoin_release] Couldnt move from bloq to apt");
@@ -316,6 +339,8 @@ void* CB_cjoin_release(void *tid) {
 int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insertQueue, int state) {
   TCB_t *tcb = NULL;
 
+  LGA_LOGGER_IMPORTANT("[LGA_move_queues] Begun");
+
   tcb = (TCB_t *) LGA_tid_get_from_fila(removeQueue, tid);
 
   if (tcb == NULL) {
@@ -330,7 +355,7 @@ int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insertQueue, int state) 
 
   if(AppendFila2(insertQueue, (void *) tcb) == SUCCEEDED) {
     tcb->state = state;
-    LGA_LOGGER_LOG("[LGA_move_queues] Inserted first element");
+    LGA_LOGGER_LOG("[LGA_move_queues] Inserted the element");
   } else {
     LGA_LOGGER_ERROR("[LGA_move_queues] The element from apt couldnt be insertQueueed");
     return FAILED;
@@ -343,6 +368,8 @@ int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insertQueue, int state) 
  */
 void LGA_next_thread() {
   TCB_t *tcb;
+
+  LGA_LOGGER_IMPORTANT("[LGA_next_thread] Begun");
 
   if (FirstFila2(&apt) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[LGA_next_thread] Couldnt set the iterator to the first element of apt");
@@ -361,8 +388,38 @@ void LGA_next_thread() {
     return;
   }
 
-  LGA_LOGGER_LOG("Setting the thread in exec to execute");
+  LGA_LOGGER_LOG("[LGA_next_thread] Setting the thread in exec to execute");
   setcontext(&(tcb->context));
+}
+
+/*
+  Move the first element from Apt Queue to Exec queue swapping the context with
+  given tcb
+ */
+void LGA_next_thread_swap(TCB_t *tcb) {
+  TCB_t *tcb_resumed;
+
+  LGA_LOGGER_IMPORTANT("[LGA_next_thread] Begun");
+
+  if (FirstFila2(&apt) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[LGA_next_thread] Couldnt set the iterator to the first element of apt");
+    return;
+  }
+
+  tcb_resumed = (TCB_t *) GetAtIteratorFila2(&apt);
+
+  if(tcb_resumed == NULL) {
+    LGA_LOGGER_ERROR("[LGA_next_thread] TCB is null");
+    return;
+  }
+
+  if(LGA_move_queues(tcb_resumed->tid, &apt, &exec, PROCST_EXEC) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[LGA_next_thread] Couldnt move the element from apt to exec");
+    return;
+  }
+
+  LGA_LOGGER_LOG("[LGA_next_thread] Setting the thread in exec to execute");
+  swapcontext(&(tcb->context),&(tcb_resumed->context));
 }
 
 /*
@@ -372,6 +429,8 @@ void LGA_next_thread() {
  */
 int LGA_dispose_exec_thread() {
   TCB_t *tcb_disposed;
+
+  LGA_LOGGER_IMPORTANT("[LGA_dispose_exec_thread] Begun");
 
   if(FirstFila2(&exec) == SUCCEEDED) {
     LGA_LOGGER_LOG("[LGA_dispose_exec_thread] Exec is not empty");
@@ -394,6 +453,9 @@ int LGA_dispose_exec_thread() {
 }
 
 void* LGA_find_element(int tid) {
+
+  LGA_LOGGER_IMPORTANT("[LGA_find_element] Begun");
+
   if(LGA_tid_inside_of_fila(&apt, tid) == SUCCEEDED) {
     LGA_LOGGER_LOG("[LGA_find_queue] Found the tid inside the Apt Queue");
     return (void *)LGA_tid_get_from_fila(&apt, tid);
