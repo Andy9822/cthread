@@ -56,18 +56,18 @@ int LGA_tid_remove_from_fila (PFILA2 pFila, int tid) {
 
   if (LGA_tid_inside_of_fila(pFila, tid) == SUCCEEDED) {
     if (FirstFila2(pFila) != SUCCEEDED) {
-      LGA_LOGGER_ERROR("Couldnt set the first element");
+      LGA_LOGGER_ERROR("[LGA_tid_remove_from_fila] Couldnt set the first element");
       return FAILED;
     }
 
     tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
     if (tcb_temp->tid == tid) {
-      LGA_LOGGER_LOG("The tid was found");
+      LGA_LOGGER_LOG("[LGA_tid_remove_from_fila] The tid was found");
       if (DeleteAtIteratorFila2(pFila) == SUCCEEDED) {
-        LGA_LOGGER_LOG("The tid was removed");
+        LGA_LOGGER_LOG("[LGA_tid_remove_from_fila] The tid was removed");
         return SUCCEEDED;
       } else {
-        LGA_LOGGER_ERROR("The tid wasnt removed");
+        LGA_LOGGER_ERROR("[LGA_tid_remove_from_fila] The tid wasnt removed");
         return FAILED;
       }
     }
@@ -75,12 +75,12 @@ int LGA_tid_remove_from_fila (PFILA2 pFila, int tid) {
       tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
 
       if (tcb_temp->tid == tid) {
-        LGA_LOGGER_LOG("The tid was found");
+        LGA_LOGGER_LOG("[LGA_tid_remove_from_fila] The tid was found");
         if (DeleteAtIteratorFila2(pFila) == SUCCEEDED) {
-          LGA_LOGGER_LOG("The tid was removed");
+          LGA_LOGGER_LOG("[LGA_tid_remove_from_fila] The tid was removed");
           return SUCCEEDED;
         } else {
-          LGA_LOGGER_ERROR("The tid wasnt removed");
+          LGA_LOGGER_ERROR("[LGA_tid_remove_from_fila] The tid wasnt removed");
           return FAILED;
         }
       }
