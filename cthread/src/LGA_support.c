@@ -99,7 +99,7 @@ void* LGA_tid_get_from_fila (PFILA2 pFila, int tid) {
   TCB_t *tcb_temp;
 
   if (LGA_tid_inside_of_fila(pFila, tid) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("[LGA_tid_inside_of_fila] The element is not inside the queue");
+    LGA_LOGGER_WARNING("[LGA_tid_inside_of_fila] The element is not inside the queue");
     return NULL;
   }
 
