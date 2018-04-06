@@ -9,11 +9,14 @@ First Task of the Operating System 1 Course from UFRGS
 env LGA_LOGGER=LGA_LOGGER_OPTIONS
 ```
 
-**Testing**
+**Test logs**
 ```
-env LGA_LOGGER_TEST_STATUS=LGA_LOGGER_TEST_OPTIONS
+env LGA_LOGGER_TEST=LGA_LOGGER_TEST_OPTIONS
+```
 
-The LGA_LOGGER must be at least LGA_LOGGER_TEST to work
+**Important logs**
+```
+env LGA_LOGGER_IMPORTANT=LGA_LOGGER_IMPORTANT_OPTIONS
 ```
 Go to **testes/** directory and run **make "your-test"**, then go to **build/** and run the executable file with the environment variables that you want.
 
@@ -22,10 +25,13 @@ Go to **testes/** directory and run **make "your-test"**, then go to **build/** 
 * LGA_UNABLE  = 0
 * LGA_ERROR  = 1
 * LGA_WARNING  = 2
-* LGA_TEST  = 3
-* LGA_LOG  = 4
+* LGA_LOG  = 3
 
 ## **LGA_LOGGER_TEST_OPTIONS**
+* LGA_UNABLE  = 0
+* LGA_ENABLE  = 1
+
+## **LGA_LOGGER_IMPORTANT_OPTIONS**
 * LGA_UNABLE  = 0
 * LGA_ENABLE  = 1
 
