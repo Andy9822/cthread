@@ -235,7 +235,10 @@ int csuspend(int tid) {
     }
     LGA_LOGGER_LOG("[csuspend] Moved the thread from bloq to Bloqueado Suspenso");
   }
-
+  else if(tcb_suspend->state == PROCST_APTO_SUS || tcb_suspend->state == PROCST_BLOQ_SUS){
+      LGA_LOGGER_LOG("[csuspend] Cannot suspend an already suspended thread");
+      return FAILED;
+  }
   return SUCCEEDED;
 }
 
@@ -272,6 +275,13 @@ int cresume(int tid) {
     }
     LGA_LOGGER_LOG("[cresume] Moved the thread from Bloqueado Suspenso to bloq");
   }
+
+  else if(tcb_resume->state == PROCST_APTO || tcb_resume->state == PROCST_BLOQ){
+      LGA_LOGGER_LOG("[csuspend] Cannot resume a not suspended thread");
+      return FAILED;
+  }
+  return SUCCEEDED;
+
 
   return SUCCEEDED;
 }
@@ -597,6 +607,16 @@ void* LGA_find_element(int tid) {
     LGA_LOGGER_LOG("[LGA_find_queue] Found the tid inside the Bloq Queue");
     return (void *)LGA_tid_get_from_fila(&bloq, tid);
   }
+  if(LGA_tid_inside_of_fila(&apt_sus, tid) == SUCCEEDED) {
+    LGA_LOGGER_LOG("[LGA_find_queue] Found the tid inside the Apt Queue");
+    return (void *)LGA_tid_get_from_fila(&apt_sus, tid);
+  }
+
+  if(LGA_tid_inside_of_fila(&bloq_sus, tid) == SUCCEEDED) {
+    LGA_LOGGER_LOG("[LGA_find_queue] Found the tid inside the Bloq Queue");
+    return (void *)LGA_tid_get_from_fila(&bloq_sus, tid);
+  }	
+  
   LGA_LOGGER_WARNING("[LGA_find_queue] The element isnt in the Apt nor Bloq queues");
   return NULL;
 }

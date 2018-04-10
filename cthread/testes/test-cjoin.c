@@ -1,5 +1,5 @@
 /*
- *	Test Program - ccreate
+ *	Test Program - cjoin
  */
 
 #include <stdio.h>

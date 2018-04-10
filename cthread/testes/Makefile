@@ -49,6 +49,22 @@ test-cyield:
 	$(CC) -c $(SRC_DIR)/LGA_support.c
 	$(CC) -o $(BUILD_DIR)/test-cyield LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cyield.c -Wall
 
+test-csuspend:
+	rm -rf build
+	mkdir $(BUILD_DIR)
+	$(CC) -c $(SRC_DIR)/cthread.c
+	$(CC) -c $(SRC_DIR)/LGA_logger.c
+	$(CC) -c $(SRC_DIR)/LGA_support.c
+	$(CC) -o $(BUILD_DIR)/test-csuspend LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-csuspend.c -Wall
+
+test-cresume:
+	rm -rf build
+	mkdir $(BUILD_DIR)
+	$(CC) -c $(SRC_DIR)/cthread.c
+	$(CC) -c $(SRC_DIR)/LGA_logger.c
+	$(CC) -c $(SRC_DIR)/LGA_support.c
+	$(CC) -o $(BUILD_DIR)/test-cresume LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cresume.c -Wall
+
 test-mandel:
 	rm -rf build
 	mkdir $(BUILD_DIR)
