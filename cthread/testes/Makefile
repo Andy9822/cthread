@@ -41,6 +41,14 @@ test-cjoin-critical:
 	$(CC) -c $(SRC_DIR)/LGA_support.c
 	$(CC) -o $(BUILD_DIR)/test-cjoin-critical LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cjoin-critical.c -Wall
 
+test-cjoin-critical2:
+	rm -rf build
+	mkdir $(BUILD_DIR)
+	$(CC) -c $(SRC_DIR)/cthread.c
+	$(CC) -c $(SRC_DIR)/LGA_logger.c
+	$(CC) -c $(SRC_DIR)/LGA_support.c
+	$(CC) -o $(BUILD_DIR)/test-cjoin-critical2 LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cjoin-critical2.c -Wall
+
 test-cyield:
 	rm -rf build
 	mkdir $(BUILD_DIR)
