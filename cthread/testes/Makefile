@@ -65,6 +65,14 @@ test-cresume:
 	$(CC) -c $(SRC_DIR)/LGA_support.c
 	$(CC) -o $(BUILD_DIR)/test-cresume LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cresume.c -Wall
 
+test-global-suspension:
+		rm -rf build
+		mkdir $(BUILD_DIR)
+		$(CC) -c $(SRC_DIR)/cthread.c
+		$(CC) -c $(SRC_DIR)/LGA_logger.c
+		$(CC) -c $(SRC_DIR)/LGA_support.c
+		$(CC) -o $(BUILD_DIR)/test-global-suspension LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-global-suspension.c -Wall
+
 test-mandel:
 	rm -rf build
 	mkdir $(BUILD_DIR)
