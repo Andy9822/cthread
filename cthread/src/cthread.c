@@ -72,7 +72,7 @@ int ccreate (void* (*start)(void*), void *arg, int prio) {
 
   if (init) {
     if(LGA_init() == SUCCEEDED) {
-      LGA_LOGGER_LOG("[ccreate] Init completed");
+      LGA_LOGGER_DEBUG("[ccreate] Init completed");
     } else {
       LGA_LOGGER_ERROR("[ccreate] Init couldnt be completed");
       return FAILED;
@@ -91,11 +91,11 @@ int ccreate (void* (*start)(void*), void *arg, int prio) {
   tcb->context.uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
   tcb->context.uc_stack.ss_size = STACK_SIZE;
 
-  LGA_LOGGER_LOG("[ccreate] Changing the New Thread context");
+  LGA_LOGGER_DEBUG("[ccreate] Changing the New Thread context");
   makecontext(&(tcb->context), (void (*) (void)) start, 1, (void *)arg);
 
   if (AppendFila2(&apt, (void *)tcb) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[ccreate] Insert Succesfully");
+    LGA_LOGGER_DEBUG("[ccreate] Insert Succesfully");
     /* Update the main thread context */
     getcontext(&(main_tcb->context));
     return tcb->tid;
@@ -114,17 +114,22 @@ Retorno:
 ******************************************************************************/
 int cyield(void) {
   TCB_t *tcb;
+
   LGA_LOGGER_IMPORTANT("[cyield] Begun");
+
   if(FirstFila2(&exec) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[cyield] Theres none thread running in exec");
     return FAILED;
   }
+
   tcb = (TCB_t *) GetAtIteratorFila2(&exec);
+
   if(tcb == NULL) {
     LGA_LOGGER_ERROR("[cyield] TCB is null");
     return FAILED;
   }
-  LGA_LOGGER_LOG("[cyield] Get the element of exec");
+
+  LGA_LOGGER_DEBUG("[cyield] Get the element of exec");
 
   if (LGA_move_queues(tcb->tid, &exec, &apt, PROCST_APTO) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[cyield]Couldnt remove from exec and insert into apt");
@@ -132,6 +137,7 @@ int cyield(void) {
   }
 
   LGA_LOGGER_LOG("[cyield] Moved the element from exec to apt");
+
   LGA_next_thread_swap(tcb);
 
   return SUCCEEDED;
@@ -157,7 +163,7 @@ int cjoin(int tid) {
   }
 
   if(FirstFila2(&exec) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[cjoin] Exec is not empty");
+    LGA_LOGGER_DEBUG("[cjoin] Exec is not empty");
   } else {
     LGA_LOGGER_WARNING("[cjoin] Exec is empty");
     return FAILED;
@@ -175,7 +181,7 @@ int cjoin(int tid) {
     LGA_LOGGER_ERROR("[cjoin] Couldnt insert the releaser into releasers queue");
     return FAILED;
   }
-  LGA_LOGGER_LOG("[cjoin] Inserted the releaser into releasers queue");
+  LGA_LOGGER_DEBUG("[cjoin] Inserted the releaser into releasers queue");
 
   tcb_blocked = (TCB_t *) GetAtIteratorFila2(&exec);
 
@@ -183,7 +189,7 @@ int cjoin(int tid) {
     LGA_LOGGER_ERROR("[cjoin] Couldnt move the thread from exec to bloq");
     return FAILED;
   }
-  LGA_LOGGER_LOG("[cjoin] Moved the thread from exec to bloq");
+  LGA_LOGGER_DEBUG("[cjoin] Moved the thread from exec to bloq");
 
   // Make the callback of the TCB_TRIGGER_RELEASE be the CB_cjoin_release with
   // the tcb_blocked->tid to release it when the TCB__TRIGGER_RELEASE is done
@@ -235,10 +241,17 @@ int csuspend(int tid) {
     }
     LGA_LOGGER_LOG("[csuspend] Moved the thread from bloq to Bloqueado Suspenso");
   }
+
   else if(tcb_suspend->state == PROCST_APTO_SUS || tcb_suspend->state == PROCST_BLOQ_SUS){
-      LGA_LOGGER_LOG("[csuspend] Cannot suspend an already suspended thread");
+      LGA_LOGGER_WARNING("[csuspend] Cannot suspend an already suspended thread");
       return FAILED;
   }
+
+  else if (tcb_suspend->state == PROCST_EXEC) {
+    LGA_LOGGER_WARNING("[csuspend] Cannot resume a thread that is executing");
+    return FAILED;
+  }
+
   return SUCCEEDED;
 }
 
@@ -253,6 +266,7 @@ int cresume(int tid) {
   TCB_t *tcb_resume;
 
   LGA_LOGGER_IMPORTANT("[cresume] Begun");
+
   tcb_resume = (TCB_t *) LGA_find_element(tid);
   if (tcb_resume == NULL) {
     LGA_LOGGER_WARNING("[cresume] Theres none threads with this tid in Bloqueado Suspenso nor Apt Suspenso queues");
@@ -276,12 +290,15 @@ int cresume(int tid) {
     LGA_LOGGER_LOG("[cresume] Moved the thread from Bloqueado Suspenso to bloq");
   }
 
-  else if(tcb_resume->state == PROCST_APTO || tcb_resume->state == PROCST_BLOQ){
-      LGA_LOGGER_LOG("[csuspend] Cannot resume a not suspended thread");
+  else if(tcb_resume->state == PROCST_APTO || tcb_resume->state == PROCST_BLOQ) {
+      LGA_LOGGER_WARNING("[csuspend] Cannot resume a not suspended thread");
       return FAILED;
   }
-  return SUCCEEDED;
 
+  else if (tcb_resume->state == PROCST_EXEC) {
+    LGA_LOGGER_WARNING("[csuspend] Cannot resume a thread that is executing");
+    return FAILED;
+  }
 
   return SUCCEEDED;
 }
@@ -337,13 +354,13 @@ int LGA_init() {
     main_tcb->context.uc_stack.ss_sp = (char*) malloc(163840);
     main_tcb->context.uc_stack.ss_size = 163840;
     main_tcb->context.uc_link = NULL;
-    LGA_LOGGER_LOG("[LGA_init] Main Thread Created");
+    LGA_LOGGER_DEBUG("[LGA_init] Main Thread Created");
   } else {
     LGA_LOGGER_ERROR("[LGA_init] The Main thread couldnt be created");
     return FAILED;
   }
   if (AppendFila2(&exec, main_tcb) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_init] Main Thread inserted in exec");
+    LGA_LOGGER_DEBUG("[LGA_init] Main Thread inserted in exec");
   } else {
     LGA_LOGGER_ERROR("[LGA_init] The Main thread couldnt be inserted in the exec queue");
     return FAILED;
@@ -353,12 +370,14 @@ int LGA_init() {
     LGA_LOGGER_ERROR("[LGA_init] Couldnt get the final context");
     return FAILED;
   }
-  LGA_LOGGER_LOG("[LGA_init] Creating Final Context");
+  LGA_LOGGER_DEBUG("[LGA_init] Creating Final Context");
+
   final_context->uc_link = NULL;
   final_context->uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
   final_context->uc_stack.ss_size = STACK_SIZE;
   makecontext(final_context, (void (*) (void)) CB_end_thread, 0);
 
+  LGA_LOGGER_LOG("[LGA_init] All structures have been initialized");
   return SUCCEEDED;
 }
 
@@ -371,42 +390,42 @@ int LGA_queues_init() {
   LGA_LOGGER_WARNING("[LGA_queues_init] Begun");
 
   if(CreateFila2(&apt) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_queues_init] Created the Apt Queue");
+    LGA_LOGGER_DEBUG("[LGA_queues_init] Created the Apt Queue");
   } else {
     LGA_LOGGER_ERROR("[LGA_queues_init] Apt Queue couldnt be created");
     return FAILED;
   }
 
   if(CreateFila2(&apt_sus) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_queues_init] Created the Apt Suspenso Queue");
+    LGA_LOGGER_DEBUG("[LGA_queues_init] Created the Apt Suspenso Queue");
   } else {
     LGA_LOGGER_ERROR("[LGA_queues_init] Apt Suspenso Queue couldnt be created");
     return FAILED;
   }
 
   if(CreateFila2(&exec) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_queues_init] Created the Exec Queue");
+    LGA_LOGGER_DEBUG("[LGA_queues_init] Created the Exec Queue");
   } else {
     LGA_LOGGER_ERROR("[LGA_queues_init] Exec Queue couldnt be created");
     return FAILED;
   }
 
   if(CreateFila2(&bloq) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_queues_init] Created the Bloq Queue");
+    LGA_LOGGER_DEBUG("[LGA_queues_init] Created the Bloq Queue");
   } else {
     LGA_LOGGER_ERROR("[LGA_queues_init] Bloq Queue couldnt be created");
     return FAILED;
   }
 
   if(CreateFila2(&bloq_sus) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_queues_init] Created the Bloqueado Suspenso Queue");
+    LGA_LOGGER_DEBUG("[LGA_queues_init] Created the Bloqueado Suspenso Queue");
   } else {
     LGA_LOGGER_ERROR("[LGA_queues_init] Bloqueado Suspenso Queue couldnt be created");
     return FAILED;
   }
 
   if(CreateFila2(&releasers) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_queues_init] Created the Releasers Queue");
+    LGA_LOGGER_DEBUG("[LGA_queues_init] Created the Releasers Queue");
   } else {
     LGA_LOGGER_ERROR("[LGA_queues_init] Releasers Queue couldnt be created");
     return FAILED;
@@ -430,6 +449,7 @@ void* CB_end_thread(void *arg) {
     LGA_LOGGER_ERROR("[CB_end_thread] Couldnt dispose the element from exec");
     return END_CONTEXT;
   }
+  LGA_LOGGER_LOG("[CB_end_thread] Ending a thread");
   // Get the next thread from APT and exec it
   LGA_next_thread();
 
@@ -452,20 +472,21 @@ void* CB_cjoin_release(void *block_releaser_in) {
     LGA_LOGGER_ERROR("[CB_cjoin_release] Couldnt move from bloq to apt");
     return END_CONTEXT;
   }
-  LGA_LOGGER_LOG("[CB_cjoin_release] Releasing thread");
+  LGA_LOGGER_DEBUG("[CB_cjoin_release] Releasing thread");
 
   if (LGA_tid_remove_from_fila(&releasers, tid_releaser) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[CB_cjoin_release] Couldnt remove from Releasers");
     return END_CONTEXT;
   }
-  LGA_LOGGER_LOG("[CB_cjoin_release] Releaser removed from releasers queue");
+  LGA_LOGGER_DEBUG("[CB_cjoin_release] Releaser removed from releasers queue");
 
   if(block_releaser_in != NULL) {
     free(block_releaser_in);
-    LGA_LOGGER_LOG("[CB_cjoin_release] Freeing the block_releaser_in");
+    LGA_LOGGER_DEBUG("[CB_cjoin_release] Freeing the block_releaser_in");
   }
   // Change the context to CB_end_thread, cuz when a cjoin triggers it means that
   // the actual thread is done doing its job, so we need to end it too
+  LGA_LOGGER_LOG("[CB_cjoin_release] Updating the final context and changing to it");
   makecontext(final_context, (void (*) (void)) CB_end_thread, 0);
   setcontext(final_context);
 
@@ -497,7 +518,7 @@ int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insertQueue, int state) 
 
   if(AppendFila2(insertQueue, (void *) tcb) == SUCCEEDED) {
     tcb->state = state;
-    LGA_LOGGER_LOG("[LGA_move_queues] Inserted the element");
+    LGA_LOGGER_DEBUG("[LGA_move_queues] Inserted the element");
   } else {
     LGA_LOGGER_ERROR("[LGA_move_queues] The element from apt couldnt be insertQueueed");
     return FAILED;
@@ -575,7 +596,7 @@ int LGA_dispose_exec_thread() {
   LGA_LOGGER_IMPORTANT("[LGA_dispose_exec_thread] Begun");
 
   if(FirstFila2(&exec) == SUCCEEDED) {
-    LGA_LOGGER_LOG("[LGA_dispose_exec_thread] Exec is not empty");
+    LGA_LOGGER_DEBUG("[LGA_dispose_exec_thread] Exec is not empty");
   } else {
     LGA_LOGGER_WARNING("[LGA_dispose_exec_thread] Exec is empty");
     return FAILED;
@@ -594,6 +615,11 @@ int LGA_dispose_exec_thread() {
   }
 }
 
+/*
+  Get a tcb that has the given TID and is inside of Apt, AptSus, Bloq or BloqSus
+  Return Valid Pointer - SUCCEEDED
+  Return NULL - FAILED
+ */
 void* LGA_find_element(int tid) {
 
   LGA_LOGGER_IMPORTANT("[LGA_find_element] Begun");
@@ -615,8 +641,8 @@ void* LGA_find_element(int tid) {
   if(LGA_tid_inside_of_fila(&bloq_sus, tid) == SUCCEEDED) {
     LGA_LOGGER_LOG("[LGA_find_queue] Found the tid inside the Bloq Queue");
     return (void *)LGA_tid_get_from_fila(&bloq_sus, tid);
-  }	
-  
+  }
+
   LGA_LOGGER_WARNING("[LGA_find_queue] The element isnt in the Apt nor Bloq queues");
   return NULL;
 }

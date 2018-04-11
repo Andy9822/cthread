@@ -4,6 +4,7 @@
 #include "../include/LGA_support.h"
 #include "../include/cdata.h"
 
+// TODO: FOR GOD SAKE CHANGE THE FIRST + WHILE FOR DO WHILE !!!!!
 /*
   Verify if exists an element that has the given tid
   in the given queue.
@@ -14,12 +15,12 @@ int LGA_tid_inside_of_fila (PFILA2 pFila, int tid) {
   TCB_t *tcb_temp;
 
   if (pFila == NULL) {
-    LGA_LOGGER_WARNING("[LGA_tid_inside_of_fila] The queue is empty");
+    LGA_LOGGER_DEBUG("[LGA_tid_inside_of_fila] The queue is empty");
     return FAILED;
   }
 
   if (FirstFila2(pFila) != SUCCEEDED) {
-    LGA_LOGGER_WARNING("[LGA_tid_inside_of_fila] Couldnt set the first element");
+    LGA_LOGGER_DEBUG("[LGA_tid_inside_of_fila] Couldnt set the first element");
     return FAILED;
   }
 
@@ -31,18 +32,18 @@ int LGA_tid_inside_of_fila (PFILA2 pFila, int tid) {
   }
 
   if (tcb_temp->tid == tid) {
-    LGA_LOGGER_LOG("[LGA_tid_inside_of_fila] The tid was found");
+    LGA_LOGGER_DEBUG("[LGA_tid_inside_of_fila] The tid was found");
     return SUCCEEDED;
   }
   while(NextFila2(pFila) == SUCCEEDED) {
     tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
 
     if (tcb_temp->tid == tid) {
-      LGA_LOGGER_LOG("[LGA_tid_inside_of_fila] The tid was found");
+      LGA_LOGGER_DEBUG("[LGA_tid_inside_of_fila] The tid was found");
       return SUCCEEDED;
     }
   }
-  LGA_LOGGER_WARNING("[LGA_tid_inside_of_fila] The tid wasnt found");
+  LGA_LOGGER_DEBUG("[LGA_tid_inside_of_fila] The tid wasnt found");
   return FAILED;
 }
 
@@ -62,9 +63,9 @@ int LGA_tid_remove_from_fila (PFILA2 pFila, int tid) {
 
     tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
     if (tcb_temp->tid == tid) {
-      LGA_LOGGER_LOG("[LGA_tid_remove_from_fila] The tid was found");
+      LGA_LOGGER_DEBUG("[LGA_tid_remove_from_fila] The tid was found");
       if (DeleteAtIteratorFila2(pFila) == SUCCEEDED) {
-        LGA_LOGGER_LOG("[LGA_tid_remove_from_fila] The tid was removed");
+        LGA_LOGGER_DEBUG("[LGA_tid_remove_from_fila] The tid was removed");
         return SUCCEEDED;
       } else {
         LGA_LOGGER_ERROR("[LGA_tid_remove_from_fila] The tid wasnt removed");
@@ -75,9 +76,9 @@ int LGA_tid_remove_from_fila (PFILA2 pFila, int tid) {
       tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
 
       if (tcb_temp->tid == tid) {
-        LGA_LOGGER_LOG("[LGA_tid_remove_from_fila] The tid was found");
+        LGA_LOGGER_DEBUG("[LGA_tid_remove_from_fila] The tid was found");
         if (DeleteAtIteratorFila2(pFila) == SUCCEEDED) {
-          LGA_LOGGER_LOG("[LGA_tid_remove_from_fila] The tid was removed");
+          LGA_LOGGER_DEBUG("[LGA_tid_remove_from_fila] The tid was removed");
           return SUCCEEDED;
         } else {
           LGA_LOGGER_ERROR("[LGA_tid_remove_from_fila] The tid wasnt removed");
@@ -99,7 +100,7 @@ void* LGA_tid_get_from_fila (PFILA2 pFila, int tid) {
   TCB_t *tcb_temp;
 
   if (LGA_tid_inside_of_fila(pFila, tid) != SUCCEEDED) {
-    LGA_LOGGER_WARNING("[LGA_tid_inside_of_fila] The element is not inside the queue");
+    LGA_LOGGER_DEBUG("[LGA_tid_inside_of_fila] The element is not inside the queue");
     return NULL;
   }
 
@@ -111,7 +112,7 @@ void* LGA_tid_get_from_fila (PFILA2 pFila, int tid) {
   tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
 
   if (tcb_temp->tid == tid) {
-    LGA_LOGGER_LOG("[LGA_tid_inside_of_fila] Get the element of the queue");
+    LGA_LOGGER_DEBUG("[LGA_tid_inside_of_fila] Get the element of the queue");
     return (void *) tcb_temp;
   }
 
@@ -119,7 +120,7 @@ void* LGA_tid_get_from_fila (PFILA2 pFila, int tid) {
     tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
 
     if (tcb_temp->tid == tid) {
-      LGA_LOGGER_LOG("[LGA_tid_inside_of_fila] Get the element of the queue");
+      LGA_LOGGER_DEBUG("[LGA_tid_inside_of_fila] Get the element of the queue");
       return (void *) tcb_temp;
     }
   }
