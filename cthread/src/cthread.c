@@ -66,7 +66,8 @@ Retorno:
 	Se erro	   => Valor negativo.
 ******************************************************************************/
 int ccreate (void* (*start)(void*), void *arg, int prio) {
-  TCB_t*tcb = (TCB_t *) malloc(sizeof(TCB_t));
+  TCB_t *tcb = (TCB_t *) malloc(sizeof(TCB_t));
+  ucontext_t *context_callback = (ucontext_t *) malloc(sizeof(ucontext_t));
 
   LGA_LOGGER_IMPORTANT("[ccreate] Begun");
 
@@ -79,25 +80,38 @@ int ccreate (void* (*start)(void*), void *arg, int prio) {
     }
   }
 
+  if (getcontext(context_callback) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("The context_callback couldnt be created");
+    return FAILED;
+  }
+
+  LGA_LOGGER_LOG("[ccreate] Creating New Context CALLBACK");
+  context_callback->uc_stack.ss_sp = (char*) malloc(STACK_SIZE * sizeof(char));
+  context_callback->uc_stack.ss_size = STACK_SIZE;
+  context_callback->uc_link = NULL;
+  // Here is where the magic happens. The context_callback will go to CB_end_thread
+  // when its called
+  makecontext(context_callback, (void (*) (void)) CB_end_thread, 0);
+
   if (getcontext(&(tcb->context)) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("The context couldnt be cloned");
+    LGA_LOGGER_ERROR("The context couldnt be created");
     return FAILED;
   }
 
   LGA_LOGGER_LOG("[ccreate] Creating New Context");
   tcb->tid = (int) Random2();
   tcb->state = PROCST_APTO;
-  tcb->context.uc_link = final_context;
-  tcb->context.uc_stack.ss_sp = (char*) malloc(STACK_SIZE);
+  tcb->context.uc_stack.ss_sp = (char*) malloc(STACK_SIZE * sizeof(char));
   tcb->context.uc_stack.ss_size = STACK_SIZE;
+  // When this context is done its call the context_callback and finish it
+  // in the right way
+  tcb->context.uc_link = context_callback;
 
   LGA_LOGGER_DEBUG("[ccreate] Changing the New Thread context");
   makecontext(&(tcb->context), (void (*) (void)) start, 1, (void *)arg);
 
   if (AppendFila2(&apt, (void *)tcb) == SUCCEEDED) {
     LGA_LOGGER_DEBUG("[ccreate] Insert Succesfully");
-    /* Update the main thread context */
-    getcontext(&(main_tcb->context));
     return tcb->tid;
   } else {
     LGA_LOGGER_ERROR("[ccreate] The new thread couldn't be inserted in the apt queue");
