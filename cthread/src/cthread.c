@@ -217,9 +217,10 @@ int cjoin(int tid) {
 
   makecontext(tcb_releaser->context.uc_link, (void (*) (void)) CB_cjoin_release, 1, \
     (void *)block_releaser);
+
   LGA_LOGGER_LOG("[cjoin] Change the UC_LINK of tcb_releaser");
-  // Get the next thread in EXEC
-  LGA_next_thread();
+  // Get the next thread in EXEC and Updated the actual context
+  LGA_next_thread_swap(tcb_blocked);
 };
 
 /******************************************************************************
@@ -265,7 +266,6 @@ int csuspend(int tid) {
     LGA_LOGGER_WARNING("[csuspend] Cannot resume a thread that is executing");
     return FAILED;
   }
-
   return SUCCEEDED;
 }
 
@@ -401,7 +401,7 @@ int LGA_init() {
   Return -1 - FAILED
  */
 int LGA_queues_init() {
-  LGA_LOGGER_WARNING("[LGA_queues_init] Begun");
+  LGA_LOGGER_IMPORTANT("[LGA_queues_init] Begun");
 
   if(CreateFila2(&apt) == SUCCEEDED) {
     LGA_LOGGER_DEBUG("[LGA_queues_init] Created the Apt Queue");
@@ -455,10 +455,9 @@ int LGA_queues_init() {
   This function move a thread from Apt to Exec and Free the context structure
  */
 void* CB_end_thread(void *arg) {
-  TCB_t *tcb_finalized = NULL;
   // Dispose the element from EXEC
-  //
   LGA_LOGGER_IMPORTANT("[CB_end_thread] Begun");
+
   if (LGA_dispose_exec_thread() != SUCCEEDED) {
     LGA_LOGGER_ERROR("[CB_end_thread] Couldnt dispose the element from exec");
     return END_CONTEXT;
@@ -501,6 +500,8 @@ void* CB_cjoin_release(void *block_releaser_in) {
   // Change the context to CB_end_thread, cuz when a cjoin triggers it means that
   // the actual thread is done doing its job, so we need to end it too
   LGA_LOGGER_LOG("[CB_cjoin_release] Updating the final context and changing to it");
+
+  getcontext(final_context);
   makecontext(final_context, (void (*) (void)) CB_end_thread, 0);
   setcontext(final_context);
 
