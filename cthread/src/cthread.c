@@ -31,6 +31,8 @@ void LGA_next_thread_swap(TCB_t *tcb);
 void* LGA_find_element(int tid);
 int LGA_dispose_exec_thread();
 int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insert, int state);
+void* LGA_get_exec_thread();
+int LGA_block_exec_thread(TCB_t *tcb_actual);
 
 /******************************************************************************
 Par�metros:
@@ -325,7 +327,17 @@ Retorno:
 	Se correto => 0 (zero)
 	Se erro	   => Valor negativo.
 ******************************************************************************/
-int csem_init(csem_t *sem, int count);
+int csem_init(csem_t *sem, int count){
+    int result;
+    result = CreateFila2(sem->fila);
+    if (result == FAILED) {
+        LGA_LOGGER_ERROR("[csem_init] Queue couldn't be created");
+        return FAILED;
+    }
+    LGA_LOGGER_LOG("[csem_init] Created the csem_t Queue");
+    sem->count = count;
+    return SUCCEEDED;
+  }
 
 /******************************************************************************
 Par�metros:
@@ -334,15 +346,22 @@ Retorno:
 	Se correto => 0 (zero)
 	Se erro	   => Valor negativo.
 ******************************************************************************/
-int cwait(csem_t *sem);
+int cwait(csem_t *sem){
+  TCB_t *tcb_actual;
+  int result;
+  sem->count -= 1;
+  if(sem->count < 0){
+    tcb_actual = (TCB_t *) LGA_get_exec_thread();
+    if(tcb_actual == NULL){
+      return FAILED;
+    }
+    AppendFila2(sem->fila,(void*)tcb_actual);
+    LGA_block_exec_thread(tcb_actual);
+  }
+  sem->count -= 1;
+  return SUCCEEDED;
+}
 
-/******************************************************************************
-Par�metros:
-	sem:	ponteiro para uma vari�vel do tipo sem�foro.
-Retorno:
-	Se correto => 0 (zero)
-	Se erro	   => Valor negativo.
-******************************************************************************/
 int csignal(csem_t *sem);
 
 /*
@@ -601,23 +620,47 @@ void LGA_next_thread_swap(TCB_t *tcb) {
 }
 
 /*
+  Move actual tcb being executed to block Queue
+  Return SUCCEEDED if all goes succesfully
+  Return FAILED if something went wrong
+ */
+int LGA_block_exec_thread(TCB_t *tcb_actual) {
+
+    return 0;
+}
+
+
+/*
+  Get the tcb being executed
+  Return Valid Pointer - SUCCEEDED
+  Return NULL - FAILED
+ */
+void* LGA_get_exec_thread() {
+  TCB_t *tcb_disposed;
+  LGA_LOGGER_IMPORTANT("[LGA_get_exec_thread] Begun");
+  if(FirstFila2(&exec) == SUCCEEDED) {
+    LGA_LOGGER_DEBUG("[LGA_get_exec_thread] Exec is not empty");
+  }
+  else {
+    LGA_LOGGER_WARNING("[LGA_get_exec_thread] Exec is empty");
+    return NULL;
+  }
+  tcb_disposed = (TCB_t *) GetAtIteratorFila2(&exec);
+  if(tcb_disposed == NULL) {
+    LGA_LOGGER_ERROR("[LGA_get_exec_thread] error getting executing tcb");
+  }
+  return (void *) tcb_disposed;
+}
+
+
+/*
   Free the element of EXEC
   Return 0 - SUCCEEDED
   Return -1 - FAILED
  */
 int LGA_dispose_exec_thread() {
   TCB_t *tcb_disposed;
-
-  LGA_LOGGER_IMPORTANT("[LGA_dispose_exec_thread] Begun");
-
-  if(FirstFila2(&exec) == SUCCEEDED) {
-    LGA_LOGGER_DEBUG("[LGA_dispose_exec_thread] Exec is not empty");
-  } else {
-    LGA_LOGGER_WARNING("[LGA_dispose_exec_thread] Exec is empty");
-    return FAILED;
-  }
-
-  tcb_disposed = (TCB_t *) GetAtIteratorFila2(&exec);
+  tcb_disposed = (TCB_t *) LGA_get_exec_thread();
 
   if (DeleteAtIteratorFila2(&exec) == SUCCEEDED) {
     free(tcb_disposed->context.uc_stack.ss_sp);
