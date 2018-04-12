@@ -67,14 +67,14 @@ void* func0(void *arg) {
 	cjoin(id2);
 	LGA_LOGGER_TEST("First Thread will cjoin second thread");
 	cjoin(id1);
-
+	LGA_LOGGER_TEST("End First thread");
 	return 0;
 }
 
 void* func1(void *arg) {
   LGA_LOGGER_TEST("Entering in the second thread");
 
-	if (*(int *)arg == 5 && global_i == 10) {
+	if (*(int *)arg == 8) {
 		LGA_LOGGER_TEST("Second thread test SUCCEEDED");
 	} else {
 		LGA_LOGGER_TEST("Second thred test FAILED");
@@ -86,7 +86,7 @@ void* func2(void *arg) {
 	int result;
   LGA_LOGGER_TEST("Entering in the third thread");
 
-	if (*(int *)arg == 8 && global_i == 10) {
+	if (*(int *)arg == 8) {
 		LGA_LOGGER_TEST("Third Test SUCCEEDED");
 	} else {
 		LGA_LOGGER_TEST("Third Test FAILED");
@@ -115,7 +115,10 @@ int main(int argc, char *argv[]) {
 	LGA_LOGGER_TEST("Main after creating one thread");
 
 	cjoin(id0);
-
+	// cyield();
+	LGA_LOGGER_TEST("VOLTEI");
+	// cyield();
+	// cyield();
   LGA_LOGGER_TEST("TEST COMPLETED");
 
 	return 0;
