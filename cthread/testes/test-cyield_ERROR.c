@@ -20,9 +20,9 @@ void * func0(void* arg){
     cyield();
 
     if(*(int *)arg == 5){
-        LGA_LOGGER_TEST("TEST FAILED");
+        LGA_LOGGER_TEST("NO SEMAFORO TEST FAILED");
     } else {
-        LGA_LOGGER_TEST("TEST SUCCEEDED");
+        LGA_LOGGER_TEST("NO SEMAFORO TEST SUCCEEDED");
     }
 
     return 0;
@@ -50,7 +50,8 @@ int main(int argc, char *argv[]){
 
     cjoin(id0);
 
+
     LGA_LOGGER_TEST("TEST COMPLETED");
-    
+
     return 0;
 }

@@ -36,6 +36,7 @@ int main(int argc, char *argv[]){
 
     int id0, id1;
     int i = 5;
+    int falseTid = 924;
 
 	LGA_LOGGER_TEST("TEST INITIATED");
 
@@ -49,7 +50,17 @@ int main(int argc, char *argv[]){
 
     cjoin(id1);
 
+
+    int result = csuspend(falseTid);
+
+    if(result < 0){
+      LGA_LOGGER_TEST("NO THREAD WITH THIS TID TEST SUCCEEDED");
+    } else {
+      LGA_LOGGER_TEST("NO THREAD WITH THIS TID TEST FAILED");
+    }
+
+
     LGA_LOGGER_TEST("TEST COMPLETED");
-    
+
     return 0;
 }

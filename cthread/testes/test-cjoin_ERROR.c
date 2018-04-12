@@ -21,14 +21,13 @@ void * func1(void* arg){
 void * func0(void* arg){
 
     int id1;
-    int i = 0;
 
     LGA_LOGGER_TEST("ENTERED FIRST THREAD");
 
     LGA_LOGGER_TEST("CREATING SECOND THREAD");
 
 
-    id1 = ccreate(func1, (void*)&i, 0);
+    id1 = ccreate(func1, (void*)&arg, 0);
 
     *(int *)arg = 5;
 
@@ -39,13 +38,13 @@ void * func0(void* arg){
 
      LGA_LOGGER_TEST("RETURNED TO FIRST THREAD");
 
-
+/*
     if(*(int*)arg == 5){
         LGA_LOGGER_TEST("TEST FAILED");
     } else {
         LGA_LOGGER_TEST("TEST SUCCEEDED");
     }
-
+*/
     return 0;
 }
 
@@ -53,16 +52,25 @@ int main(int argc, char *argv[]){
 
     int id0;
     int i = 0;
+    int falseTid = 923;
 
-	LGA_LOGGER_TEST("TEST INITIATED");
+  	LGA_LOGGER_TEST("TEST INITIATED");
 
-	LGA_LOGGER_TEST("Creating threads");
+  	LGA_LOGGER_TEST("Creating threads");
 
     id0 = ccreate(func0, (void *)&i, 0);
 
     cjoin(id0);
 
+    int result = cjoin(falseTid);
+
+    if(result < 0){
+      LGA_LOGGER_TEST("NO THREAD WITH THIS TID TEST SUCCEEDED");
+    } else {
+      LGA_LOGGER_TEST("NO THREAD WITH THIS TID TEST FAILED");
+    }
+
     LGA_LOGGER_TEST("TEST COMPLETED");
-    
+
     return 0;
 }
