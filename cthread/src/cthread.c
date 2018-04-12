@@ -33,6 +33,7 @@ int LGA_dispose_exec_thread();
 int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insert, int state);
 void* LGA_get_exec_thread();
 int LGA_block_exec_thread(TCB_t *tcb_actual);
+int LGA_remove_exec(TCB_t *tcb);
 
 /******************************************************************************
 Par�metros:
@@ -223,6 +224,7 @@ int cjoin(int tid) {
   LGA_LOGGER_LOG("[cjoin] Change the UC_LINK of tcb_releaser");
   // Get the next thread in EXEC and Updated the actual context
   LGA_next_thread_swap(tcb_blocked);
+  return SUCCEEDED;
 };
 
 /******************************************************************************
@@ -349,15 +351,26 @@ Retorno:
 int cwait(csem_t *sem){
   TCB_t *tcb_actual;
   int result;
+
+  //P(S)
   sem->count -= 1;
-  if(sem->count < 0){
+  if(sem->count < 0){ //Caso não esteja disponivel a SC
     tcb_actual = (TCB_t *) LGA_get_exec_thread();
-    if(tcb_actual == NULL){
+
+    if(tcb_actual == NULL){ // Caso nao tenha conseguido recuperar tcb atual
+      LGA_LOGGER_ERROR("[cwait] Couldn't get executing thread tcb");
       return FAILED;
     }
-    AppendFila2(sem->fila,(void*)tcb_actual);
+
+    //Adicionar thread atual na fila do semaforo
+    if(AppendFila2(sem->fila,(void*)tcb_actual) == FAILED){
+      LGA_LOGGER_ERROR("[cwait] Couldn't append executing tcb to csem_t queue");
+    }
+    //Colocar pra dormir thread atual
     LGA_block_exec_thread(tcb_actual);
   }
+
+  //Quando tiver acesso à SC decrementa semáforo para lockar a SC
   sem->count -= 1;
   return SUCCEEDED;
 }
@@ -532,7 +545,7 @@ void* CB_cjoin_release(void *block_releaser_in) {
   its state to new state
   Return 0 - SUCCEEDED
   Return -1 - FAILED
- */
+ */                                    //apt               exec
 int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insertQueue, int state) {
   TCB_t *tcb = NULL;
 
@@ -652,6 +665,25 @@ void* LGA_get_exec_thread() {
   return (void *) tcb_disposed;
 }
 
+/*
+  Remove element pointed by iterator of EXEC
+  Return 0 - SUCCEEDED
+  Return -1 - FAILED
+ */
+ //Suspeita dos free poderem dar leak por ter trocado do LGA_dispose_exec_thread
+ //para cá o free
+ int LGA_remove_exec(TCB_t *tcb){
+   if (DeleteAtIteratorFila2(&exec) == SUCCEEDED) {
+     free(tcb->context.uc_stack.ss_sp);
+     free(tcb);
+     LGA_LOGGER_LOG("[LGA_remove_exec] Disposed the first element from exec");
+     return SUCCEEDED;
+   } else {
+     LGA_LOGGER_ERROR("[LGA_remove_exec] The element of exec couldnt be disposed");
+     return FAILED;
+   }
+ }
+
 
 /*
   Free the element of EXEC
@@ -660,17 +692,10 @@ void* LGA_get_exec_thread() {
  */
 int LGA_dispose_exec_thread() {
   TCB_t *tcb_disposed;
+  int result;
   tcb_disposed = (TCB_t *) LGA_get_exec_thread();
-
-  if (DeleteAtIteratorFila2(&exec) == SUCCEEDED) {
-    free(tcb_disposed->context.uc_stack.ss_sp);
-    free(tcb_disposed);
-    LGA_LOGGER_LOG("[LGA_dispose_exec_thread] Disposed the first element from exec");
-    return SUCCEEDED;
-  } else {
-    LGA_LOGGER_ERROR("[LGA_dispose_exec_thread] The element of exec couldnt be disposed");
-    return FAILED;
-  }
+  result = LGA_remove_exec(tcb_disposed);
+  return result;
 }
 
 /*
