@@ -97,13 +97,47 @@ test-series:
 	$(CC) -c $(SRC_DIR)/LGA_support.c
 	$(CC) -o $(BUILD_DIR)/test-series LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-series.c -Wall
 
-test-wait:
+test-cyield_ERROR:
 	rm -rf build
 	mkdir $(BUILD_DIR)
 	$(CC) -c $(SRC_DIR)/cthread.c
 	$(CC) -c $(SRC_DIR)/LGA_logger.c
 	$(CC) -c $(SRC_DIR)/LGA_support.c
+	$(CC) -o $(BUILD_DIR)/test-cyield_ERROR LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cyield_ERROR.c -Wall
+
+test-csuspend_ERROR:
+	rm -rf build
+	mkdir $(BUILD_DIR)
+	$(CC) -c $(SRC_DIR)/cthread.c
+	$(CC) -c $(SRC_DIR)/LGA_logger.c
+	$(CC) -c $(SRC_DIR)/LGA_support.c
+	$(CC) -o $(BUILD_DIR)/test-csuspend_ERROR LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-csuspend_ERROR.c -Wall
+
+test-cresume_ERROR:
+	rm -rf build
+	mkdir $(BUILD_DIR)
+	$(CC) -c $(SRC_DIR)/cthread.c
+	$(CC) -c $(SRC_DIR)/LGA_logger.c
+	$(CC) -c $(SRC_DIR)/LGA_support.c
+	$(CC) -o $(BUILD_DIR)/test-cresume_ERROR LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cresume_ERROR.c -Wall
+
+test-cjoin_ERROR:
+	rm -rf build
+	mkdir $(BUILD_DIR)
+	$(CC) -c $(SRC_DIR)/cthread.c
+	$(CC) -c $(SRC_DIR)/LGA_logger.c
+	$(CC) -c $(SRC_DIR)/LGA_support.c
+	$(CC) -o $(BUILD_DIR)/test-cjoin_ERROR LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cjoin_ERROR.c -Wall
+
+test-threaddepth:
+	rm -rf build
+	mkdir $(BUILD_DIR)
+	$(CC) -c $(SRC_DIR)/cthread.c
+	$(CC) -c $(SRC_DIR)/LGA_logger.c
+	$(CC) -c $(SRC_DIR)/LGA_support.c
+	$(CC) -o $(BUILD_DIR)/test-threaddepth LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-threaddepth.c -Wall
 	$(CC) -o $(BUILD_DIR)/test-wait LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-wait.c -Wall
+
 
 clean:
 	rm -rf *.o *~ build

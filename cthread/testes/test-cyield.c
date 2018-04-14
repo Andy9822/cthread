@@ -1,5 +1,5 @@
 /*
- *	Test Program - ccreate
+ *	Test Program - cyield
  */
 
 #include <stdio.h>
