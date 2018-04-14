@@ -354,7 +354,7 @@ int cwait(csem_t *sem){
     LGA_LOGGER_DEBUG("[cwait] Got the element of exec");
 
     //Add tcb of actual executing thread to csem_t queue
-    if(AppendFila2(sem->fila,(void*)tcb_actual) == FAILED){
+    if(AppendFila2(sem->fila,(void*)tcb_actual->tid) == FAILED){
       LGA_LOGGER_ERROR("[cwait] Couldn't append executing tcb to csem_t queue");
     }
     LGA_LOGGER_IMPORTANT("[cwait] Critical Section locked, appended actual executing tcb to csem_t queues");
@@ -498,20 +498,39 @@ void* CB_end_thread(void *arg) {
 void* CB_cjoin_release(void *block_releaser_in) {
   BLOCK_RELEASER *block_releaser = (BLOCK_RELEASER *) block_releaser_in;
   int tid_block, tid_releaser;
+  TCB_t * tcb_block;
 
   LGA_LOGGER_IMPORTANT("[CB_cjoin_release] Begun");
 
   tid_block = block_releaser->tid_block;
   tid_releaser = block_releaser->tid_releaser;
 
-  //VERIFICAR SE TA BLOQUEADO SUSPENSO OU SO BLOQUEAD
-  if (LGA_move_queues(tid_block, &bloq, &apt, PROCST_APTO) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("[CB_cjoin_release] Couldnt move from bloq to apt");
+  tcb_block = (TCB_t *) LGA_find_element(tid_block);
+
+  if(tcb_block == NULL){
+    LGA_LOGGER_ERROR("[CB_cjoin_release] Tid not found");
+    return END_CONTEXT;
+  }
+
+  if(tcb_block->state == PROCST_BLOQ){
+    LGA_LOGGER_IMPORTANT("[CB_cjoin_release] TCP found on blocked queue");
+    if (LGA_move_queues(tid_block, &bloq, &apt, PROCST_APTO) != SUCCEEDED) {
+      LGA_LOGGER_ERROR("[CB_cjoin_release] Couldnt move from bloq to apt");
+      return END_CONTEXT;
+    }
+  } else if(tcb_block->state == PROCST_BLOQ_SUS){
+    LGA_LOGGER_IMPORTANT("[CB_cjoin_release] TCP found on blocked_sus queue");
+    if (LGA_move_queues(tid_block, &bloq_sus, &apt_sus, PROCST_APTO) != SUCCEEDED) {
+      LGA_LOGGER_ERROR("[CB_cjoin_release] Couldnt move from bloq_sus to apt_sus");
+      return END_CONTEXT;
+    }
+  } else {
+    LGA_LOGGER_ERROR("[CB_cjoin_release] Couldnt find element in both block and block_sus");
     return END_CONTEXT;
   }
   LGA_LOGGER_DEBUG("[CB_cjoin_release] Releasing thread");
 
-  if (LGA_tid_remove_from_fila(&releasers, tid_releaser) != SUCCEEDED) {
+  if (LGA_tid_remove_from_fila(&releasers, tid_releaser) != SUCCEEDED){
     LGA_LOGGER_ERROR("[CB_cjoin_release] Couldnt remove from Releasers");
     return END_CONTEXT;
   }
@@ -594,7 +613,7 @@ void LGA_next_thread() {
  */
  // ####
 void LGA_next_thread_swap(TCB_t *tcb) {
-  LGA_LOGGER_IMPORTANT("[LGA_next_thread] Begun");
+  LGA_LOGGER_IMPORTANT("[LGA_next_thread_swap] Begun");
 
   TCB_t *tcb_resumed;
   tcb_resumed = (TCB_t *) LGA_get_first_queue(&apt);
@@ -648,7 +667,7 @@ void* LGA_get_first_queue(FILA2 * queue) {
     LGA_LOGGER_WARNING("[LGA_get_first_queue] Queue is empty");
     return NULL;
   }
-  tcb_disposed = (TCB_t *) GetAtIteratorFila2(&exec);
+  tcb_disposed = (TCB_t *) GetAtIteratorFila2(queue);
   if(tcb_disposed == NULL) {
     LGA_LOGGER_WARNING("[LGA_get_first_queue] none tcb was found in exec queue");
   }

@@ -24,7 +24,7 @@ void* func1(void *arg) {
 	LGA_LOGGER_TEST("Second thread before cyield to modify the number");
 
 	cyield();
-	
+
 	LGA_LOGGER_TEST("Second thread after cyield");
 
 	if (*(int *)arg == 2) {
@@ -49,6 +49,12 @@ int main(int argc, char *argv[]) {
 	id1 = ccreate(func1, (void *)&i, 0);
 
 	LGA_LOGGER_TEST("Main before first CYIELD");
+
+	cyield();
+
+	cjoin(id0);
+
+	csuspend(id1);
 
 	cyield();
 

@@ -24,25 +24,21 @@ int LGA_tid_inside_of_fila (PFILA2 pFila, int tid) {
     return FAILED;
   }
 
-  tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
-
-  if (tcb_temp == NULL) {
-    LGA_LOGGER_ERROR("[LGA_tid_inside_of_fila] The tcb is NULL");
-    return FAILED;
-  }
-
-  if (tcb_temp->tid == tid) {
-    LGA_LOGGER_DEBUG("[LGA_tid_inside_of_fila] The tid was found");
-    return SUCCEEDED;
-  }
-  while(NextFila2(pFila) == SUCCEEDED) {
+  do{
     tcb_temp = (TCB_t *) GetAtIteratorFila2(pFila);
+
+    if (tcb_temp == NULL) {
+      LGA_LOGGER_ERROR("[LGA_tid_inside_of_fila] The tcb is NULL");
+      return FAILED;
+    }
 
     if (tcb_temp->tid == tid) {
       LGA_LOGGER_DEBUG("[LGA_tid_inside_of_fila] The tid was found");
       return SUCCEEDED;
     }
-  }
+
+  }while(NextFila2(pFila) == SUCCEEDED);
+
   LGA_LOGGER_DEBUG("[LGA_tid_inside_of_fila] The tid wasnt found");
   return FAILED;
 }
