@@ -129,5 +129,13 @@ test-cjoin_ERROR:
 	$(CC) -c $(SRC_DIR)/LGA_support.c
 	$(CC) -o $(BUILD_DIR)/test-cjoin_ERROR LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cjoin_ERROR.c -Wall
 
+test-threaddepth:
+	rm -rf build
+	mkdir $(BUILD_DIR)
+	$(CC) -c $(SRC_DIR)/cthread.c
+	$(CC) -c $(SRC_DIR)/LGA_logger.c
+	$(CC) -c $(SRC_DIR)/LGA_support.c
+	$(CC) -o $(BUILD_DIR)/test-threaddepth LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-threaddepth.c -Wall
+
 clean:
 	rm -rf *.o *~ build

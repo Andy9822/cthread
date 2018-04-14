@@ -27,7 +27,7 @@ void * func0(void* arg){
     LGA_LOGGER_TEST("CREATING SECOND THREAD");
 
 
-    id1 = ccreate(func1, (void*)&arg, 0);
+    id1 = ccreate(func1, (void*)arg, 0);
 
     *(int *)arg = 5;
 
@@ -38,13 +38,14 @@ void * func0(void* arg){
 
      LGA_LOGGER_TEST("RETURNED TO FIRST THREAD");
 
-/*
+
     if(*(int*)arg == 5){
         LGA_LOGGER_TEST("TEST FAILED");
     } else {
         LGA_LOGGER_TEST("TEST SUCCEEDED");
     }
-*/
+
+
     return 0;
 }
 
