@@ -340,33 +340,82 @@ Retorno:
 ******************************************************************************/
 int cwait(csem_t *sem){
   LGA_LOGGER_IMPORTANT("[cwait] begun");
-  TCB_t *tcb_actual;
+  TCB_t * sleep_tcb;
   int result;
   //P(S)
   sem->count -= 1;
   if(sem->count < 0){ //Caso não esteja disponivel a SC
 
+    LGA_LOGGER_IMPORTANT("[csignal] Semaforo will put thread to sleep");
+
     // Get tcb of current executing thread
-    tcb_actual = (TCB_t *) LGA_get_first_queue(&exec);
-    if(tcb_actual == NULL){ // Caso nao tenha conseguido recuperar tcb atual
+    sleep_tcb = (TCB_t *) LGA_get_first_queue(&exec);
+    if(sleep_tcb == NULL){ // Caso nao tenha conseguido recuperar tcb atual
       return FAILED;
     }
     LGA_LOGGER_DEBUG("[cwait] Got the element of exec");
 
     //Add tcb of actual executing thread to csem_t queue
-    if(AppendFila2(sem->fila,(void*)tcb_actual->tid) == FAILED){
+    if(AppendFila2(sem->fila,(void*)sleep_tcb->tid) == FAILED){
       LGA_LOGGER_ERROR("[cwait] Couldn't append executing tcb to csem_t queue");
     }
     LGA_LOGGER_IMPORTANT("[cwait] Critical Section locked, appended actual executing tcb to csem_t queues");
 
-    //Sleep actual thread (block itself ) and change contexto to next thread
-    LGA_block_exec_thread(tcb_actual);
+    //Sleep actual thread (block itself) and change contexto to next thread
+    LGA_block_exec_thread(sleep_tcb);
   }
 
   return SUCCEEDED;
 }
 
-int csignal(csem_t *sem);
+/******************************************************************************
+Par�metros:
+	sem:	ponteiro para uma vari�vel do tipo sem�foro.
+Retorno:
+	Se correto => 0 (zero)
+	Se erro	   => Valor negativo.
+******************************************************************************/
+int csignal(csem_t *sem){
+  LGA_LOGGER_IMPORTANT("[csignal] begun");
+  TCB_t * wakeup_tcb;
+  int wakeup_tid;
+  
+  sem->count += 1;
+  if(sem->count <= 0){
+    LGA_LOGGER_IMPORTANT("[csignal] Semaforo will signal");
+
+    wakeup_tid = (int) LGA_get_first_queue(sem->fila);
+    if(DeleteAtIteratorFila2(sem->fila) != SUCCEEDED){
+      LGA_LOGGER_ERROR("[csignal] Couldn't remove TID from Wait queue");
+      return FAILED;
+    }
+
+    printf("%d ", wakeup_tid);
+    wakeup_tcb = (TCB_t *) LGA_find_element(wakeup_tid);
+
+    if(wakeup_tcb == NULL){ // Caso nao tenha conseguido recuperar tcb atual
+      LGA_LOGGER_ERROR("[csignal] TCB IS NULL");
+      return FAILED;
+    }
+
+    if(wakeup_tcb->state == PROCST_BLOQ){
+    LGA_LOGGER_IMPORTANT("[csignal] TCP found on blocked queue");
+      if (LGA_move_queues(wakeup_tid, &bloq, &apt, PROCST_APTO) != SUCCEEDED) {
+        LGA_LOGGER_ERROR("[csignal] Couldnt move from bloq to apt");
+        return FAILED;
+      }
+    }else if(wakeup_tcb->state == PROCST_BLOQ_SUS){
+    LGA_LOGGER_IMPORTANT("[csignal] TCP found on blocked_sus queue");
+      if (LGA_move_queues(wakeup_tid, &bloq_sus, &apt_sus, PROCST_APTO_SUS) != SUCCEEDED) {
+        LGA_LOGGER_ERROR("[csignal] Couldnt move from bloq_sus to apt_sus");
+        return FAILED;
+      }
+    } 
+  }
+
+  return 0;
+
+}
 
 /*
   Initialize the used structures
@@ -520,7 +569,7 @@ void* CB_cjoin_release(void *block_releaser_in) {
     }
   } else if(tcb_block->state == PROCST_BLOQ_SUS){
     LGA_LOGGER_IMPORTANT("[CB_cjoin_release] TCP found on blocked_sus queue");
-    if (LGA_move_queues(tid_block, &bloq_sus, &apt_sus, PROCST_APTO) != SUCCEEDED) {
+    if (LGA_move_queues(tid_block, &bloq_sus, &apt_sus, PROCST_APTO_SUS) != SUCCEEDED) {
       LGA_LOGGER_ERROR("[CB_cjoin_release] Couldnt move from bloq_sus to apt_sus");
       return END_CONTEXT;
     }

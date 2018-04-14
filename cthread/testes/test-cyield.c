@@ -52,12 +52,6 @@ int main(int argc, char *argv[]) {
 
 	cyield();
 
-	cjoin(id0);
-
-	csuspend(id1);
-
-	cyield();
-
 	LGA_LOGGER_TEST("Main after first CYIELD");
 
 	i = 2;
