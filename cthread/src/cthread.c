@@ -31,8 +31,9 @@ void LGA_next_thread_swap(TCB_t *tcb);
 void* LGA_find_element(int tid);
 int LGA_dispose_exec_thread();
 int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insert, int state);
-void* LGA_get_exec_thread();
+void* LGA_get_first_queue(FILA2 * queue);
 int LGA_block_exec_thread(TCB_t *tcb_actual);
+int LGA_remove_exec(TCB_t *tcb);
 
 /******************************************************************************
 Par�metros:
@@ -129,25 +130,16 @@ Retorno:
 	Se erro	   => Valor negativo.
 ******************************************************************************/
 int cyield(void) {
-  TCB_t *tcb;
-
   LGA_LOGGER_IMPORTANT("[cyield] Begun");
 
-  if(FirstFila2(&exec) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("[cyield] Theres none thread running in exec");
+  TCB_t *tcb;
+  tcb = (TCB_t *) LGA_get_first_queue(&exec);
+  if(tcb == NULL){ // Caso nao tenha conseguido recuperar tcb atual
     return FAILED;
   }
+  LGA_LOGGER_DEBUG("[cyield] Got the element of exec");
 
-  tcb = (TCB_t *) GetAtIteratorFila2(&exec);
-
-  if(tcb == NULL) {
-    LGA_LOGGER_ERROR("[cyield] TCB is null");
-    return FAILED;
-  }
-
-  LGA_LOGGER_DEBUG("[cyield] Get the element of exec");
-
-  if (LGA_move_queues(tcb->tid, &exec, &apt, PROCST_APTO) != SUCCEEDED) {
+  if(LGA_move_queues(tcb->tid, &exec, &apt, PROCST_APTO) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[cyield]Couldnt remove from exec and insert into apt");
     return FAILED;
   }
@@ -178,10 +170,8 @@ int cjoin(int tid) {
     return FAILED;
   }
 
-  if(FirstFila2(&exec) == SUCCEEDED) {
-    LGA_LOGGER_DEBUG("[cjoin] Exec is not empty");
-  } else {
-    LGA_LOGGER_WARNING("[cjoin] Exec is empty");
+  tcb_blocked = (TCB_t *) LGA_get_first_queue(&exec);
+  if(tcb_blocked == NULL){ // Caso nao tenha conseguido recuperar tcb atual
     return FAILED;
   }
 
@@ -199,8 +189,6 @@ int cjoin(int tid) {
   }
   LGA_LOGGER_DEBUG("[cjoin] Inserted the releaser into releasers queue");
 
-  tcb_blocked = (TCB_t *) GetAtIteratorFila2(&exec);
-
   if (LGA_move_queues(tcb_blocked->tid, &exec, &bloq, PROCST_BLOQ) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[cjoin] Couldnt move the thread from exec to bloq");
     return FAILED;
@@ -217,12 +205,14 @@ int cjoin(int tid) {
   block_releaser->tid_block = tcb_blocked->tid;
   block_releaser->tid_releaser = tcb_releaser->tid;
 
+
   makecontext(tcb_releaser->context.uc_link, (void (*) (void)) CB_cjoin_release, 1, \
     (void *)block_releaser);
 
   LGA_LOGGER_LOG("[cjoin] Change the UC_LINK of tcb_releaser");
   // Get the next thread in EXEC and Updated the actual context
   LGA_next_thread_swap(tcb_blocked);
+  return SUCCEEDED;
 };
 
 /******************************************************************************
@@ -328,16 +318,18 @@ Retorno:
 	Se erro	   => Valor negativo.
 ******************************************************************************/
 int csem_init(csem_t *sem, int count){
-    int result;
-    result = CreateFila2(sem->fila);
-    if (result == FAILED) {
-        LGA_LOGGER_ERROR("[csem_init] Queue couldn't be created");
-        return FAILED;
-    }
-    LGA_LOGGER_LOG("[csem_init] Created the csem_t Queue");
-    sem->count = count;
-    return SUCCEEDED;
+  LGA_LOGGER_IMPORTANT("[csem_init] begun");
+  int result;
+  sem->fila = (PFILA2 ) malloc(sizeof(PFILA2));
+  result = CreateFila2(sem->fila);
+  if (result == FAILED) {
+      LGA_LOGGER_ERROR("[csem_init] Queue couldn't be created");
+      return FAILED;
   }
+  LGA_LOGGER_LOG("[csem_init] Created the csem_t Queue");
+  sem->count = count;
+  return SUCCEEDED;
+}
 
 /******************************************************************************
 Par�metros:
@@ -347,18 +339,30 @@ Retorno:
 	Se erro	   => Valor negativo.
 ******************************************************************************/
 int cwait(csem_t *sem){
+  LGA_LOGGER_IMPORTANT("[cwait] begun");
   TCB_t *tcb_actual;
   int result;
+  //P(S)
   sem->count -= 1;
-  if(sem->count < 0){
-    tcb_actual = (TCB_t *) LGA_get_exec_thread();
-    if(tcb_actual == NULL){
+  if(sem->count < 0){ //Caso não esteja disponivel a SC
+
+    // Get tcb of current executing thread
+    tcb_actual = (TCB_t *) LGA_get_first_queue(&exec);
+    if(tcb_actual == NULL){ // Caso nao tenha conseguido recuperar tcb atual
       return FAILED;
     }
-    AppendFila2(sem->fila,(void*)tcb_actual);
+    LGA_LOGGER_DEBUG("[cwait] Got the element of exec");
+
+    //Add tcb of actual executing thread to csem_t queue
+    if(AppendFila2(sem->fila,(void*)tcb_actual) == FAILED){
+      LGA_LOGGER_ERROR("[cwait] Couldn't append executing tcb to csem_t queue");
+    }
+    LGA_LOGGER_IMPORTANT("[cwait] Critical Section locked, appended actual executing tcb to csem_t queues");
+
+    //Sleep actual thread (block itself ) and change contexto to next thread
     LGA_block_exec_thread(tcb_actual);
   }
-  sem->count -= 1;
+
   return SUCCEEDED;
 }
 
@@ -500,6 +504,7 @@ void* CB_cjoin_release(void *block_releaser_in) {
   tid_block = block_releaser->tid_block;
   tid_releaser = block_releaser->tid_releaser;
 
+  //VERIFICAR SE TA BLOQUEADO SUSPENSO OU SO BLOQUEAD
   if (LGA_move_queues(tid_block, &bloq, &apt, PROCST_APTO) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[CB_cjoin_release] Couldnt move from bloq to apt");
     return END_CONTEXT;
@@ -532,7 +537,7 @@ void* CB_cjoin_release(void *block_releaser_in) {
   its state to new state
   Return 0 - SUCCEEDED
   Return -1 - FAILED
- */
+ */                                    //apt               exec
 int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insertQueue, int state) {
   TCB_t *tcb = NULL;
 
@@ -564,22 +569,16 @@ int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insertQueue, int state) 
   Move the first element from Apt Queue to Exec Queue
  */
 void LGA_next_thread() {
-  TCB_t *tcb;
-
   LGA_LOGGER_IMPORTANT("[LGA_next_thread] Begun");
 
-  if (FirstFila2(&apt) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("[LGA_next_thread] Couldnt set the iterator to the first element of apt");
+  // Get tcb of executing thread
+  TCB_t *tcb;
+  tcb = (TCB_t *) LGA_get_first_queue(&apt);
+  if(tcb == NULL){ // Caso nao tenha conseguido recuperar tcb atual
     return;
   }
 
-  tcb = (TCB_t *) GetAtIteratorFila2(&apt);
-
-  if(tcb == NULL) {
-    LGA_LOGGER_ERROR("[LGA_next_thread] TCB is null");
-    return;
-  }
-
+  // Moves next thread from apt queue to exec queue
   if(LGA_move_queues(tcb->tid, &apt, &exec, PROCST_EXEC) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[LGA_next_thread] Couldnt move the element from apt to exec");
     return;
@@ -590,26 +589,20 @@ void LGA_next_thread() {
 }
 
 /*
-  Move the first element from Apt Queue to Exec queue swapping the context with
+  Moves the first element from Apt Queue to Exec queue swapping the context with
   given tcb
  */
+ // ####
 void LGA_next_thread_swap(TCB_t *tcb) {
-  TCB_t *tcb_resumed;
-
   LGA_LOGGER_IMPORTANT("[LGA_next_thread] Begun");
 
-  if (FirstFila2(&apt) != SUCCEEDED) {
-    LGA_LOGGER_ERROR("[LGA_next_thread] Couldnt set the iterator to the first element of apt");
+  TCB_t *tcb_resumed;
+  tcb_resumed = (TCB_t *) LGA_get_first_queue(&apt);
+  if(tcb_resumed == NULL){ // Caso nao tenha conseguido recuperar tcb atual
     return;
   }
 
-  tcb_resumed = (TCB_t *) GetAtIteratorFila2(&apt);
-
-  if(tcb_resumed == NULL) {
-    LGA_LOGGER_ERROR("[LGA_next_thread] TCB is null");
-    return;
-  }
-
+  //Moves next thread from apt queue to execute queue
   if(LGA_move_queues(tcb_resumed->tid, &apt, &exec, PROCST_EXEC) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[LGA_next_thread] Couldnt move the element from apt to exec");
     return;
@@ -625,8 +618,17 @@ void LGA_next_thread_swap(TCB_t *tcb) {
   Return FAILED if something went wrong
  */
 int LGA_block_exec_thread(TCB_t *tcb_actual) {
+  LGA_LOGGER_IMPORTANT("[LGA_block_exec_thread] Begun");
+  //Move actual thread tcb to bloq queue
+  if(LGA_move_queues(tcb_actual->tid, &exec, &bloq, PROCST_BLOQ) != SUCCEEDED) {
+    LGA_LOGGER_ERROR("[LGA_block_exec_thread] Couldnt remove from exec and insert into bloq");
+    return FAILED;
+  }
+  LGA_LOGGER_DEBUG("[LGA_block_exec_thread] Actual executing tcb moved to bloq queue");
+  //Swap context to next thread
+  LGA_next_thread_swap(tcb_actual);
 
-    return 0;
+  return SUCCEEDED;
 }
 
 
@@ -635,22 +637,42 @@ int LGA_block_exec_thread(TCB_t *tcb_actual) {
   Return Valid Pointer - SUCCEEDED
   Return NULL - FAILED
  */
-void* LGA_get_exec_thread() {
+void* LGA_get_first_queue(FILA2 * queue) {
+  LGA_LOGGER_IMPORTANT("[LGA_get_first_queue] Begun");
+
   TCB_t *tcb_disposed;
-  LGA_LOGGER_IMPORTANT("[LGA_get_exec_thread] Begun");
-  if(FirstFila2(&exec) == SUCCEEDED) {
-    LGA_LOGGER_DEBUG("[LGA_get_exec_thread] Exec is not empty");
+  if(FirstFila2(queue) == SUCCEEDED) {
+    LGA_LOGGER_DEBUG("[LGA_get_first_queue] Queue is not empty");
   }
   else {
-    LGA_LOGGER_WARNING("[LGA_get_exec_thread] Exec is empty");
+    LGA_LOGGER_WARNING("[LGA_get_first_queue] Queue is empty");
     return NULL;
   }
   tcb_disposed = (TCB_t *) GetAtIteratorFila2(&exec);
   if(tcb_disposed == NULL) {
-    LGA_LOGGER_ERROR("[LGA_get_exec_thread] error getting executing tcb");
+    LGA_LOGGER_WARNING("[LGA_get_first_queue] none tcb was found in exec queue");
   }
   return (void *) tcb_disposed;
 }
+
+/*
+  Remove element pointed by iterator of EXEC
+  Return 0 - SUCCEEDED
+  Return -1 - FAILED
+ */
+ // ##### Suspeita dos free poderem dar leak por ter trocado do LGA_dispose_exec_thread
+ //para cá o free
+ int LGA_remove_exec(TCB_t *tcb){
+   if (DeleteAtIteratorFila2(&exec) == SUCCEEDED) {
+     free(tcb->context.uc_stack.ss_sp);
+     free(tcb);
+     LGA_LOGGER_LOG("[LGA_remove_exec] Disposed the first element from exec");
+     return SUCCEEDED;
+   } else {
+     LGA_LOGGER_ERROR("[LGA_remove_exec] The element of exec couldnt be disposed");
+     return FAILED;
+   }
+ }
 
 
 /*
@@ -660,17 +682,13 @@ void* LGA_get_exec_thread() {
  */
 int LGA_dispose_exec_thread() {
   TCB_t *tcb_disposed;
-  tcb_disposed = (TCB_t *) LGA_get_exec_thread();
-
-  if (DeleteAtIteratorFila2(&exec) == SUCCEEDED) {
-    free(tcb_disposed->context.uc_stack.ss_sp);
-    free(tcb_disposed);
-    LGA_LOGGER_LOG("[LGA_dispose_exec_thread] Disposed the first element from exec");
-    return SUCCEEDED;
-  } else {
-    LGA_LOGGER_ERROR("[LGA_dispose_exec_thread] The element of exec couldnt be disposed");
+  int result;
+  tcb_disposed = (TCB_t *) LGA_get_first_queue(&exec);
+  if(tcb_disposed == NULL){ // Caso nao tenha conseguido recuperar tcb atual
     return FAILED;
   }
+  result = LGA_remove_exec(tcb_disposed);
+  return result;
 }
 
 /*

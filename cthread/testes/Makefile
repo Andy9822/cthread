@@ -136,6 +136,8 @@ test-threaddepth:
 	$(CC) -c $(SRC_DIR)/LGA_logger.c
 	$(CC) -c $(SRC_DIR)/LGA_support.c
 	$(CC) -o $(BUILD_DIR)/test-threaddepth LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-threaddepth.c -Wall
+	$(CC) -o $(BUILD_DIR)/test-wait LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-wait.c -Wall
+
 
 clean:
 	rm -rf *.o *~ build
