@@ -32,6 +32,7 @@ void * func0(void* arg){
 
     LGA_LOGGER_TEST("FIRST THREAD STARTS TO SLEEP");
     cwait(&sem);
+    cyield();
     LGA_LOGGER_TEST("FIRST THREAD WAKES UP");
 
     *(int *) arg = 3;
@@ -99,7 +100,7 @@ int main(int argc, char * argv[]){
     int i = 5;
 
 
-    csem_init(&sem, 0);
+    csem_init(&sem, 1);
 
     LGA_LOGGER_TEST("Creating both threads");
 

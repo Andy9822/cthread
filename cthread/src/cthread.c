@@ -48,7 +48,7 @@ int cidentify (char *name, int size) {
   int i = 0;
 	char identity[73] = {0};
 
-	strcpy(identity, "Leonardo 00274721\nAndy Garramones 00274XXX\nGuilherme Haetinger 00274702\n");
+	strcpy(identity, "Leonardo 00274721\nAndy Garramones 00274705\nGuilherme Haetinger 00274702\n");
 	for(i=0;i<size && i < 73;i++) {
 		name[i] = identity[i];
 	}
@@ -71,7 +71,7 @@ Retorno:
 int ccreate (void* (*start)(void*), void *arg, int prio) {
   TCB_t *tcb = (TCB_t *) malloc(sizeof(TCB_t));
   ucontext_t *context_callback = (ucontext_t *) malloc(sizeof(ucontext_t));
-
+  
   LGA_LOGGER_IMPORTANT("[ccreate] Begun");
 
   if (init) {
@@ -727,12 +727,11 @@ void* LGA_get_first_queue(FILA2 * queue) {
   Return 0 - SUCCEEDED
   Return -1 - FAILED
  */
- // ##### Suspeita dos free poderem dar leak por ter trocado do LGA_dispose_exec_thread
- //para cá o free
  int LGA_remove_exec(TCB_t *tcb){
    if (DeleteAtIteratorFila2(&exec) == SUCCEEDED) {
-     free(tcb->context.uc_stack.ss_sp);
-     free(tcb);
+     if(tcb->context.uc_stack.ss_sp != NULL) free(tcb->context.uc_stack.ss_sp);
+     if(tcb->context.uc_link != NULL)free(tcb->context.uc_link);
+     if(tcb != NULL)free(tcb);
      LGA_LOGGER_LOG("[LGA_remove_exec] Disposed the first element from exec");
      return SUCCEEDED;
    } else {
