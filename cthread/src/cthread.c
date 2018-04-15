@@ -48,7 +48,7 @@ int cidentify (char *name, int size) {
   int i = 0;
 	char identity[73] = {0};
 
-	strcpy(identity, "Leonardo 00274721\nAndy Garramones 00274XXX\nGuilherme Haetinger 00274XXX\n");
+	strcpy(identity, "Leonardo 00274721\nAndy Garramones 00274XXX\nGuilherme Haetinger 00274702\n");
 	for(i=0;i<size && i < 73;i++) {
 		name[i] = identity[i];
 	}
@@ -390,7 +390,6 @@ int csignal(csem_t *sem){
       return FAILED;
     }
 
-    printf("%d ", wakeup_tid);
     wakeup_tcb = (TCB_t *) LGA_find_element(wakeup_tid);
 
     if(wakeup_tcb == NULL){ // Caso nao tenha conseguido recuperar tcb atual

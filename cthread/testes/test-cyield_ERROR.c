@@ -38,7 +38,7 @@ void * func1(void* arg){
 
 int main(int argc, char *argv[]){
 
-    int id0, id1;
+    int id0;
     int i = 0;
 
 	LGA_LOGGER_TEST("TEST INITIATED");
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]){
 	LGA_LOGGER_TEST("Creating threads");
 
     id0 = ccreate(func0, (void *)&i, 0);
-    id1 = ccreate(func1, (void *)&i, 0);
+    ccreate(func1, (void *)&i, 0);
 
     cjoin(id0);
 

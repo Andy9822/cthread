@@ -1,5 +1,12 @@
 /*
-*   test semáforo
+*   Test Program - Semáforo
+*
+*   Creating three threads, we stablish an order for critical section access.
+*   Thread 1 asks for the 'SEMAFORO' first, followed by the second thread. While the first thread asks first, 
+*   it will be the second who has the final say on the critical section value, for we are using a 'FIFO' structure.
+*   After the third thread signals the 'SEMAFORO' and ends, the first in the line (thread 1) wakes up and changes the critical
+*   variable's value. When this thread signals the 'SEMAFORO' and ends, it will be the second thread's turn to set the variable's value.
+*   We return to the main thread to execute the final test. 
 */
 
 
@@ -88,7 +95,7 @@ void * func2(void* arg){
 
 int main(int argc, char * argv[]){
 
-    int id0, id1, id2;
+    int id1;
     int i = 5;
 
 
@@ -96,9 +103,9 @@ int main(int argc, char * argv[]){
 
     LGA_LOGGER_TEST("Creating both threads");
 
-    id0 = ccreate(func0, (void *)&i, 0);
+    ccreate(func0, (void *)&i, 0);
     id1 = ccreate(func1, (void *)&i, 0);
-    id2 = ccreate(func2, (void *)&i, 0);
+    ccreate(func2, (void *)&i, 0);
 
     cjoin(id1);
 

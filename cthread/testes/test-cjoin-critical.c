@@ -22,7 +22,7 @@ void* func0(void *arg) {
 void* func1(void *arg) {
   LGA_LOGGER_TEST("Entering in the second thread");
 	cjoin(*(int *) arg);
-	LGA_LOGGER_TEST("IF THIS LOG IS BEFORE THE First Thread, it worked");
+	LGA_LOGGER_TEST("IF THIS LOG IS BEFORE THE First Thread SUCCEEDS, it worked");
 
 	return 0;
 }
