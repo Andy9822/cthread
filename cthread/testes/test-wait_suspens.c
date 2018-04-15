@@ -45,7 +45,7 @@ void* func1(void *arg) {
   cwait(&sem);
 
 
-  LGA_LOGGER_IMPORTANT("[10] func1 running with unlocked SC");
+  LGA_LOGGER_TEST("[10] func1 running with unlocked SC");
 
 
 	return 0;
