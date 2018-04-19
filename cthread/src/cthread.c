@@ -10,12 +10,14 @@
 #include "../include/LGA_support.h"
 
 FILA2 apt, exec, bloq, apt_sus, bloq_sus, releasers;
-int init = 1;
+int init = NOT_INITIALIZED;
 ucontext_t *final_context = NULL;
 TCB_t *main_tcb = NULL;
 
 int LGA_init();
 int LGA_queues_init();
+int LGA_initialized();
+
 /*
   Only use as callback to change the final context of a thread
  */
@@ -48,13 +50,14 @@ int cidentify (char *name, int size) {
   int i = 0;
 	char identity[73] = {0};
 
-	strcpy(identity, "Leonardo 00274721\nAndy Garramones 00274705\nGuilherme Haetinger 00274702\n");
+	strcpy(identity, "Leonardo 00274721\nAndy Garramones 00274XXX\nGuilherme Haetinger 00274702\n");
 	for(i=0;i<size && i < 73;i++) {
 		name[i] = identity[i];
 	}
   if(strcmp(identity,name) == EQUALS) {
     return SUCCEEDED;
   } else {
+    LGA_LOGGER_ERROR("Size is smaller than the identification of the group");
     return FAILED;
   }
 };
@@ -71,17 +74,10 @@ Retorno:
 int ccreate (void* (*start)(void*), void *arg, int prio) {
   TCB_t *tcb = (TCB_t *) malloc(sizeof(TCB_t));
   ucontext_t *context_callback = (ucontext_t *) malloc(sizeof(ucontext_t));
-  
+
   LGA_LOGGER_IMPORTANT("[ccreate] Begun");
 
-  if (init) {
-    if(LGA_init() == SUCCEEDED) {
-      LGA_LOGGER_DEBUG("[ccreate] Init completed");
-    } else {
-      LGA_LOGGER_ERROR("[ccreate] Init couldnt be completed");
-      return FAILED;
-    }
-  }
+  if (LGA_initialized() != SUCCEEDED) return FAILED;
 
   if (getcontext(context_callback) != SUCCEEDED) {
     LGA_LOGGER_ERROR("The context_callback couldnt be created");
@@ -130,9 +126,12 @@ Retorno:
 	Se erro	   => Valor negativo.
 ******************************************************************************/
 int cyield(void) {
+  TCB_t *tcb;
+
   LGA_LOGGER_IMPORTANT("[cyield] Begun");
 
-  TCB_t *tcb;
+  if (LGA_initialized() != SUCCEEDED) return FAILED;
+
   tcb = (TCB_t *) LGA_get_first_queue(&exec);
   if(tcb == NULL){ // Caso nao tenha conseguido recuperar tcb atual
     return FAILED;
@@ -163,6 +162,8 @@ int cjoin(int tid) {
   BLOCK_RELEASER *block_releaser = NULL; // Use to ease the identification
 
   LGA_LOGGER_IMPORTANT("[cjoin] Begun");
+
+  if (LGA_initialized() != SUCCEEDED) return FAILED;
 
   if (LGA_tid_inside_of_fila(&releasers, tid) == SUCCEEDED) {
     LGA_LOGGER_WARNING("[cjoin] This thread is already releasing another thread, \
@@ -226,6 +227,9 @@ int csuspend(int tid) {
   TCB_t *tcb_suspend;
 
   LGA_LOGGER_IMPORTANT("[csuspend] Begun");
+
+  if (LGA_initialized() != SUCCEEDED) return FAILED;
+
   tcb_suspend = (TCB_t *) LGA_find_element(tid);
   if (tcb_suspend == NULL) {
     LGA_LOGGER_WARNING("[csuspend] Theres none threads with this tid in bloq nor apt queues");
@@ -273,6 +277,8 @@ int cresume(int tid) {
 
   LGA_LOGGER_IMPORTANT("[cresume] Begun");
 
+  if (LGA_initialized() != SUCCEEDED) return FAILED;
+
   tcb_resume = (TCB_t *) LGA_find_element(tid);
   if (tcb_resume == NULL) {
     LGA_LOGGER_WARNING("[cresume] Theres none threads with this tid in Bloqueado Suspenso nor Apt Suspenso queues");
@@ -319,10 +325,12 @@ Retorno:
 ******************************************************************************/
 int csem_init(csem_t *sem, int count){
   LGA_LOGGER_IMPORTANT("[csem_init] begun");
-  int result;
+
+  if (LGA_initialized() != SUCCEEDED) return FAILED;
+
   sem->fila = (PFILA2 ) malloc(sizeof(PFILA2));
-  result = CreateFila2(sem->fila);
-  if (result == FAILED) {
+
+  if (CreateFila2(sem->fila) == FAILED) {
       LGA_LOGGER_ERROR("[csem_init] Queue couldn't be created");
       return FAILED;
   }
@@ -340,9 +348,11 @@ Retorno:
 ******************************************************************************/
 int cwait(csem_t *sem){
   LGA_LOGGER_IMPORTANT("[cwait] begun");
+
+  if (LGA_initialized() != SUCCEEDED) return FAILED;
+
   TCB_t * sleep_tcb;
-  int result;
-  //P(S)
+
   sem->count -= 1;
   if(sem->count < 0){ //Caso não esteja disponivel a SC
 
@@ -376,12 +386,15 @@ Retorno:
 	Se erro	   => Valor negativo.
 ******************************************************************************/
 int csignal(csem_t *sem){
-  LGA_LOGGER_IMPORTANT("[csignal] begun");
   TCB_t * wakeup_tcb;
   int wakeup_tid;
-  
+
+  LGA_LOGGER_IMPORTANT("[csignal] begun");
+
+  if (LGA_initialized() != SUCCEEDED) return FAILED;
+
   sem->count += 1;
-  if(sem->count <= 0){
+  if(sem->count <= 0) {
     LGA_LOGGER_IMPORTANT("[csignal] Semaforo will signal");
 
     wakeup_tid = (int) LGA_get_first_queue(sem->fila);
@@ -397,23 +410,21 @@ int csignal(csem_t *sem){
       return FAILED;
     }
 
-    if(wakeup_tcb->state == PROCST_BLOQ){
-    LGA_LOGGER_IMPORTANT("[csignal] TCP found on blocked queue");
+    if(wakeup_tcb->state == PROCST_BLOQ) {
+      LGA_LOGGER_IMPORTANT("[csignal] TCP found on blocked queue");
       if (LGA_move_queues(wakeup_tid, &bloq, &apt, PROCST_APTO) != SUCCEEDED) {
         LGA_LOGGER_ERROR("[csignal] Couldnt move from bloq to apt");
         return FAILED;
       }
-    }else if(wakeup_tcb->state == PROCST_BLOQ_SUS){
-    LGA_LOGGER_IMPORTANT("[csignal] TCP found on blocked_sus queue");
+    } else if (wakeup_tcb->state == PROCST_BLOQ_SUS) {
+      LGA_LOGGER_IMPORTANT("[csignal] TCP found on blocked_sus queue");
       if (LGA_move_queues(wakeup_tid, &bloq_sus, &apt_sus, PROCST_APTO_SUS) != SUCCEEDED) {
         LGA_LOGGER_ERROR("[csignal] Couldnt move from bloq_sus to apt_sus");
         return FAILED;
       }
-    } 
+    }
   }
-
   return 0;
-
 }
 
 /*
@@ -467,6 +478,20 @@ int LGA_init() {
 }
 
 /*
+
+ */
+int LGA_initialized() {
+  if (init == NOT_INITIALIZED) {
+    if(LGA_init() == SUCCEEDED) {
+      LGA_LOGGER_DEBUG("[LGA_verify_init] Init completed");
+    } else {
+      LGA_LOGGER_ERROR("[LGA_verify_init] Init couldnt be completed");
+      return FAILED;
+    }
+  }
+  return SUCCEEDED;
+}
+/*
   Initialize the used queues
   Return 0 - SUCCEEDED
   Return -1 - FAILED
@@ -516,7 +541,7 @@ int LGA_queues_init() {
     return FAILED;
   }
 
-  LGA_LOGGER_LOG("[LGA_queues_init] All queues has been created");
+  LGA_LOGGER_LOG("[LGA_queues_init] All queues have been created");
   return SUCCEEDED;
 }
 
