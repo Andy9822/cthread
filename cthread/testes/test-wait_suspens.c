@@ -59,7 +59,7 @@ void* func2(void *arg) {
   LGA_LOGGER_TEST("[6] func2 after func0 suspend blocked func1 while still locking SC");
   cyield();
 
-  
+
   LGA_LOGGER_TEST("[8] func2 after SC unlocked but func1 now has to be on suspended apt");
 	return 0;
 }

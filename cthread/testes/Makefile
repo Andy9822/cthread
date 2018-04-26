@@ -137,16 +137,6 @@ test-semaforo:
 	$(CC) -c $(SRC_DIR)/LGA_support.c
 	$(CC) -o $(BUILD_DIR)/test-semaforo LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-semaforo.c -Wall
 
-
-test-threaddepth:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-threaddepth LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-threaddepth.c -Wall
-	$(CC) -o $(BUILD_DIR)/test-wait LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-wait.c -Wall
-
 test-wait_suspens:
 	rm -rf build
 	mkdir $(BUILD_DIR)
@@ -154,6 +144,11 @@ test-wait_suspens:
 	$(CC) -c $(SRC_DIR)/LGA_logger.c
 	$(CC) -c $(SRC_DIR)/LGA_support.c
 	$(CC) -o $(BUILD_DIR)/test-wait_suspens LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-wait_suspens.c -Wall
+
+test-wait_suspens_lib:
+	rm -rf build
+	mkdir $(BUILD_DIR)
+	$(CC) -o $(BUILD_DIR)/test-wait_suspens test-wait_suspens.c -L../lib -lcthread -Wall
 
 
 clean:
