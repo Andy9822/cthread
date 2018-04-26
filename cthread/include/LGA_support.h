@@ -7,6 +7,7 @@
 #define END_CONTEXT 0
 #define STACK_SIZE 131072
 #define NOT_INITIALIZED 1
+
 typedef struct s_BLOCK_RELEASER{
   int tid_block;
   int tid_releaser;

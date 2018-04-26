@@ -629,7 +629,7 @@ void* CB_cjoin_release(void *block_releaser_in) {
   its state to new state
   Return 0 - SUCCEEDED
   Return -1 - FAILED
- */                                    //apt               exec
+ */
 int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insertQueue, int state) {
   TCB_t *tcb = NULL;
 
@@ -663,14 +663,12 @@ int LGA_move_queues(int tid, PFILA2 removeQueue, PFILA2 insertQueue, int state) 
 void LGA_next_thread() {
   LGA_LOGGER_IMPORTANT("[LGA_next_thread] Begun");
 
-  // Get tcb of executing thread
   TCB_t *tcb;
   tcb = (TCB_t *) LGA_get_first_queue(&apt);
-  if(tcb == NULL){ // Caso nao tenha conseguido recuperar tcb atual
+  if(tcb == NULL) {
     return;
   }
 
-  // Moves next thread from apt queue to exec queue
   if(LGA_move_queues(tcb->tid, &apt, &exec, PROCST_EXEC) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[LGA_next_thread] Couldnt move the element from apt to exec");
     return;
@@ -684,7 +682,6 @@ void LGA_next_thread() {
   Moves the first element from Apt Queue to Exec queue swapping the context with
   given tcb
  */
- // ####
 void LGA_next_thread_swap(TCB_t *tcb) {
   LGA_LOGGER_IMPORTANT("[LGA_next_thread_swap] Begun");
 
@@ -694,7 +691,6 @@ void LGA_next_thread_swap(TCB_t *tcb) {
     return;
   }
 
-  //Moves next thread from apt queue to execute queue
   if(LGA_move_queues(tcb_resumed->tid, &apt, &exec, PROCST_EXEC) != SUCCEEDED) {
     LGA_LOGGER_ERROR("[LGA_next_thread] Couldnt move the element from apt to exec");
     return;
