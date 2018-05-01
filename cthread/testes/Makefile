@@ -6,150 +6,67 @@ CC=gcc
 LIB_DIR=../lib
 BIN_DIR=../bin
 SRC_DIR=../src
+TST_DIR=../testes
 BUILD_DIR=build
-all: test-cidentify
+OBJ=$(wildcard $(TST_DIR)/*.c)
+
+all: $(OBJ)
+	$(foreach file, $(OBJ),$(CC) $(file) -L../lib -lcthread -Wall -o $(file:.c=).exe;)
 
 test-cidentify:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-cidentify LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cidentify.c -Wall
+	$(CC) -o test-cidentify test-cidentify.c -L../lib -lcthread -Wall
 
 test-ccreate:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-ccreate LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-ccreate.c -Wall
+	$(CC) -o test-ccreate test-ccreate.c -L../lib -lcthread -Wall
 
 test-cjoin:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-cjoin LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cjoin.c -Wall
+	$(CC) -o test-cjoin test-cjoin.c -L../lib -lcthread -Wall
 
 test-cjoin-critical:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-cjoin-critical LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cjoin-critical.c -Wall
+	$(CC) -o test-critical test-critical.c -L../lib -lcthread -Wall
 
 test-cjoin-critical2:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-cjoin-critical2 LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cjoin-critical2.c -Wall
+	$(CC) -o test-critical2 test-critical2.c -L../lib -lcthread -Wall
 
 test-cyield:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-cyield LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cyield.c -Wall
+	$(CC) -o test-cyield test-cyield.c -L../lib -lcthread -Wall
 
 test-csuspend:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-csuspend LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-csuspend.c -Wall
+	$(CC) -o test-csuspend test-csuspend.c -L../lib -lcthread -Wall
 
 test-cresume:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-cresume LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cresume.c -Wall
+	$(CC) -o test-cresume test-cresume.c -L../lib -lcthread -Wall
 
 test-global-suspension:
-		rm -rf build
-		mkdir $(BUILD_DIR)
-		$(CC) -c $(SRC_DIR)/cthread.c
-		$(CC) -c $(SRC_DIR)/LGA_logger.c
-		$(CC) -c $(SRC_DIR)/LGA_support.c
-		$(CC) -o $(BUILD_DIR)/test-global-suspension LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-global-suspension.c -Wall
+	$(CC) -o test-suspension test-suspension.c -L../lib -lcthread -Wall
 
 test-mandel:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-mandel LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-mandel.c -Wall
+	$(CC) -o test-mandel test-mandel.c -L../lib -lcthread -Wall
 
 test-series:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-series LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-series.c -Wall
+	$(CC) -o test-series test-series.c -L../lib -lcthread -Wall
 
 test-cyield_ERROR:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-cyield_ERROR LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cyield_ERROR.c -Wall
+	$(CC) -o test-cyield_ERROR test-cyield_ERROR.c -L../lib -lcthread -Wall
 
 test-csuspend_ERROR:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-csuspend_ERROR LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-csuspend_ERROR.c -Wall
+	$(CC) -o test-csuspend_ERROR test-csuspend_ERROR.c -L../lib -lcthread -Wall
 
 test-cresume_ERROR:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-cresume_ERROR LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cresume_ERROR.c -Wall
+	$(CC) -o test-cresume_ERROR test-cresume_ERROR.c -L../lib -lcthread -Wall
 
 test-cjoin_ERROR:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-cjoin_ERROR LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-cjoin_ERROR.c -Wall
+	$(CC) -o test-cjoin_ERROR test-cjoin_ERROR.c -L../lib -lcthread -Wall
 
 test-semaforo:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-semaforo LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-semaforo.c -Wall
+	$(CC) -o test-semaforo test-semaforo.c -L../lib -lcthread -Wall
 
 test-wait_suspens:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -c $(SRC_DIR)/cthread.c
-	$(CC) -c $(SRC_DIR)/LGA_logger.c
-	$(CC) -c $(SRC_DIR)/LGA_support.c
-	$(CC) -o $(BUILD_DIR)/test-wait_suspens LGA_logger.o $(BIN_DIR)/support.o LGA_support.o cthread.o test-wait_suspens.c -Wall
+	$(CC) -o test-wait_suspens test-wait_suspens.c -L../lib -lcthread -Wall
 
 test-wait_suspens_lib:
-	rm -rf build
-	mkdir $(BUILD_DIR)
-	$(CC) -o $(BUILD_DIR)/test-wait_suspens test-wait_suspens.c -L../lib -lcthread -Wall
+	$(CC) -o test-wait_suspens_lib test-wait_suspens_lib.c -L../lib -lcthread -Wall
 
 
 clean:
-	rm -rf *.o *~ build
+	rm -rf *.o *~ build *.exe
